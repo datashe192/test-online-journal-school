@@ -3,291 +3,754 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduJournal - Online School Journal</title>
-    <!-- Tailwind CSS for styling -->
+    <title>EduJournal - Academic Portal</title>
+    
+    <!-- Academic Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Standard React (No Babel for better speed) -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Merriweather', 'serif'],
+                    },
+                    colors: {
+                        school: {
+                            900: '#1a362a', // Deep Chalkboard Green
+                            800: '#234b3b',
+                            700: '#2d604b',
+                            600: '#38785e',
+                            100: '#dcfce7',
+                            50:  '#fdfbf7', // Notebook paper off-white
+                        },
+                        gold: {
+                            500: '#d4af37', // Academic Gold
+                            600: '#b5952f',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React and Babel -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
     <style>
-        /* Custom styles for smoother transitions */
+        body { 
+            background-color: #fdfbf7; 
+            /* Subtle notebook line pattern */
+            background-image: linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px);
+            background-size: 100% 2.5rem;
+        }
         .modal-overlay {
-            background-color: rgba(15, 23, 42, 0.6);
+            background-color: rgba(26, 54, 42, 0.7);
             backdrop-filter: blur(4px);
         }
-        .animate-in {
-            animation: fadeIn 0.2s ease-out;
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        /* Fix for mobile scrolling */
-        body { overflow-x: hidden; }
+        .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
+        
+        /* Custom Scrollbar for modals */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900">
+<body class="text-slate-800 font-sans antialiased">
+    
+    <!-- Instant Loading Screen (Hides when React loads) -->
+    <div id="loading-screen" class="fixed inset-0 bg-school-900 flex flex-col items-center justify-center z-50 text-white transition-opacity duration-500">
+        <svg class="animate-spin h-12 w-12 text-gold-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <h1 class="font-serif text-2xl font-bold tracking-widest text-gold-500">EduJournal</h1>
+        <p class="text-school-100 mt-2">Loading Academic Portal...</p>
+    </div>
+
     <div id="root"></div>
 
-    <script>
-        const { useState, useEffect, createElement: h } = React;
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-        // --- Configuration ---
+        // --- UI Components ---
+        const Card = ({ children, className = '' }) => (
+            <div className={`bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden ${className}`}>
+                {children}
+            </div>
+        );
+
+        const Button = ({ children, onClick, type = 'button', variant = 'primary', className = '' }) => {
+            const baseStyle = "px-4 py-2.5 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95";
+            const variants = {
+                primary: "bg-school-700 hover:bg-school-800 text-white",
+                gold: "bg-gold-500 hover:bg-gold-600 text-white",
+                secondary: "bg-white border-2 border-slate-200 hover:border-school-600 text-slate-700 hover:text-school-800",
+                danger: "bg-white border-2 border-red-200 hover:bg-red-50 text-red-600",
+                dangerSolid: "bg-red-600 hover:bg-red-700 text-white",
+                ghost: "hover:bg-slate-100 text-slate-600 shadow-none"
+            };
+            return (
+                <button type={type} onClick={onClick} className={`${baseStyle} ${variants[variant]} ${className}`}>
+                    {children}
+                </button>
+            );
+        };
+
+        const Icons = {
+            Users: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+            Book: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>,
+            LogOut: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+            Message: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+            Plus: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+            Left: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>,
+            Calendar: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+            User: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+            Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
+            Shield: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        };
+
         const SUBJECTS = ['English', 'Math', 'Georgian', 'Nature', 'History', 'Sport', 'Music', 'Art'];
         const INITIAL_ADMIN = { id: 'admin-1', username: 'Admin', password: 'nz5laf6nzzA', role: 'admin', name: 'System Administrator' };
 
-        // --- Icons (SVG strings) ---
-        const Icon = ({ name }) => {
-            const icons = {
-                book: h('svg', {width:20, height:20, viewBox:"0 0 24 24", fill:"none", stroke:"currentColor", strokeWidth:2, strokeLinecap:"round", strokeLinejoin:"round"}, h('path', {d:"M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"})),
-                plus: h('svg', {width:20, height:20, viewBox:"0 0 24 24", fill:"none", stroke:"currentColor", strokeWidth:2}, h('line',{x1:12,y1:5,x2:12,y2:19}), h('line',{x1:5,y1:12,x2:19,y2:12})),
-                trash: h('svg', {width:18, height:18, viewBox:"0 0 24 24", fill:"none", stroke:"currentColor", strokeWidth:2}, h('path',{d:"M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"})),
-                logout: h('svg', {width:18, height:18, viewBox:"0 0 24 24", fill:"none", stroke:"currentColor", strokeWidth:2}, h('path',{d:"M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"}))
-            };
-            return icons[name] || null;
-        };
-
-        // --- Components ---
-
+        // --- Main App ---
         function App() {
             const [currentUser, setCurrentUser] = useState(null);
             const [users, setUsers] = useState([INITIAL_ADMIN]);
             const [records, setRecords] = useState([]);
 
-            if (!currentUser) {
-                return h(LoginScreen, { users, onLogin: setCurrentUser });
-            }
+            // Hide loading screen when React mounts
+            useEffect(() => {
+                const loader = document.getElementById('loading-screen');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.style.display = 'none', 500);
+                }
+            }, []);
 
-            return h('div', { className: "min-h-screen flex flex-col" }, [
-                h('header', { className: "bg-white border-b p-4 sticky top-0 z-40 flex justify-between items-center shadow-sm" }, [
-                    h('div', { className: "flex items-center gap-2" }, [
-                        h('div', { className: "bg-blue-600 p-1.5 rounded text-white" }, h(Icon, { name: 'book' })),
-                        h('span', { className: "text-xl font-bold" }, "EduJournal")
-                    ]),
-                    h('div', { className: "flex items-center gap-4" }, [
-                        h('span', { className: "text-sm font-medium hidden sm:inline" }, `${currentUser.name} (${currentUser.role})`),
-                        h('button', { 
-                            onClick: () => setCurrentUser(null),
-                            className: "text-slate-500 hover:text-red-600 p-2 flex items-center gap-2"
-                        }, [h(Icon, { name: 'logout' }), h('span', {className:"hidden sm:inline"}, "Logout")])
-                    ])
-                ]),
-                h('main', { className: "flex-1 max-w-7xl mx-auto w-full p-4 sm:p-8" }, [
-                    currentUser.role === 'admin' && h(AdminDashboard, { users, setUsers }),
-                    currentUser.role === 'teacher' && h(TeacherDashboard, { user: currentUser, users, records, setRecords }),
-                    currentUser.role === 'student' && h(StudentDashboard, { user: currentUser, records })
-                ])
-            ]);
-        }
+            if (!currentUser) return <LoginScreen users={users} onLogin={setCurrentUser} />;
 
-        function LoginScreen({ users, onLogin }) {
-            const [u, setU] = useState('');
-            const [p, setP] = useState('');
-            const [err, setErr] = useState('');
+            return (
+                <div className="min-h-screen flex flex-col relative z-10">
+                    <header className="bg-school-900 text-white border-b-4 border-gold-500 px-6 py-4 sticky top-0 z-40 shadow-lg">
+                        <div className="max-w-7xl mx-auto flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-gold-500 text-school-900 p-2.5 rounded-lg shadow-inner"><Icons.Book /></div>
+                                <div>
+                                    <h1 className="text-2xl font-serif font-bold tracking-wide">EduJournal</h1>
+                                    <p className="text-xs text-school-100 opacity-80 uppercase tracking-widest hidden sm:block">Academic Portal</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-6">
+                                <div className="flex flex-col items-end hidden sm:flex">
+                                    <span className="text-sm font-bold">{currentUser.name}</span>
+                                    <span className="text-xs text-gold-500 uppercase tracking-widest font-semibold">{currentUser.role}</span>
+                                </div>
+                                <Button variant="secondary" onClick={() => setCurrentUser(null)} className="!px-3 !py-2 shadow-md">
+                                    <Icons.LogOut /> <span className="hidden sm:inline">Sign Out</span>
+                                </Button>
+                            </div>
+                        </div>
+                    </header>
 
-            const login = (e) => {
-                e.preventDefault();
-                const found = users.find(user => user.username === u && user.password === p);
-                if (found) onLogin(found);
-                else setErr('Wrong credentials');
-            };
-
-            return h('div', { className: "min-h-screen bg-slate-100 flex items-center justify-center p-4" }, 
-                h('div', { className: "bg-white p-8 rounded-2xl shadow-xl w-full max-w-md" }, [
-                    h('h1', { className: "text-2xl font-bold text-center mb-6" }, "School Login"),
-                    err && h('p', { className: "bg-red-50 text-red-600 p-2 rounded mb-4 text-center text-sm" }, err),
-                    h('form', { onSubmit: login, className: "space-y-4" }, [
-                        h('input', { placeholder: "Username", className: "w-full p-3 border rounded-lg", value: u, onChange: e => setU(e.target.value) }),
-                        h('input', { type: "password", placeholder: "Password", className: "w-full p-3 border rounded-lg", value: p, onChange: e => setP(e.target.value) }),
-                        h('button', { className: "w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700" }, "Sign In")
-                    ]),
-                    h('div', { className: "mt-6 p-3 bg-slate-50 rounded text-xs text-center" }, "Admin: Admin / nz5laf6nzzA")
-                ])
+                    <main className="flex-1 max-w-7xl mx-auto w-full p-4 sm:p-8 pb-24">
+                        {currentUser.role === 'admin' && <AdminDashboard users={users} setUsers={setUsers} />}
+                        {currentUser.role === 'teacher' && <TeacherDashboard user={currentUser} users={users} records={records} setRecords={setRecords} />}
+                        {currentUser.role === 'student' && <StudentDashboard user={currentUser} records={records} />}
+                    </main>
+                </div>
             );
         }
 
-        function AdminDashboard({ users, setUsers }) {
-            const [showCreate, setShowCreate] = useState(false);
-            const [toDelete, setToDelete] = useState(null);
+        // ==========================================
+        // LOGIN SCREEN
+        // ==========================================
+        function LoginScreen({ users, onLogin }) {
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
 
-            const addUser = (data) => {
-                setUsers([...users, { ...data, id: Date.now().toString() }]);
-                setShowCreate(false);
+            const handleLogin = (e) => {
+                e.preventDefault();
+                const user = users.find(u => u.username === username && u.password === password);
+                if (user) onLogin(user);
+                else setError('Incorrect credentials. Please verify your username and password.');
             };
 
-            return h('div', { className: "space-y-6" }, [
-                h('div', { className: "flex justify-between items-center" }, [
-                    h('h2', { className: "text-2xl font-bold" }, "User Accounts"),
-                    h('button', { 
-                        onClick: () => setShowCreate(true),
-                        className: "bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-                    }, [h(Icon, { name: 'plus' }), "Create User"])
-                ]),
-                h('div', { className: "grid grid-cols-1 md:grid-cols-3 gap-6" }, 
-                    ['admin', 'teacher', 'student'].map(role => h('div', { key: role, className: "space-y-4" }, [
-                        h('h3', { className: "font-bold text-slate-500 uppercase text-xs tracking-widest border-b pb-2" }, role + 's'),
-                        users.filter(u => u.role === role).map(user => h('div', { key: user.id, className: "bg-white p-4 rounded-xl border shadow-sm flex justify-between items-center" }, [
-                            h('div', null, [
-                                h('div', { className: "font-bold" }, user.name),
-                                h('div', { className: "text-xs text-slate-400" }, `@${user.username}`)
-                            ]),
-                            user.id !== 'admin-1' && h('button', { 
-                                onClick: () => setToDelete(user),
-                                className: "text-slate-300 hover:text-red-500" 
-                            }, h(Icon, { name: 'trash' }))
-                        ]))
-                    ]))
-                ),
-                showCreate && h(CreateUserModal, { users, onSubmit: addUser, onClose: () => setShowCreate(false) }),
-                toDelete && h('div', { className: "fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50" }, 
-                    h('div', { className: "bg-white p-6 rounded-2xl max-w-sm w-full animate-in" }, [
-                        h('h3', { className: "text-lg font-bold mb-2" }, "Delete account?"),
-                        h('p', { className: "text-slate-500 mb-6" }, `Are you sure about deleting ${toDelete.name}?`),
-                        h('div', { className: "flex gap-2" }, [
-                            h('button', { onClick: () => setToDelete(null), className: "flex-1 p-2 rounded bg-slate-100" }, "Cancel"),
-                            h('button', { onClick: () => { setUsers(users.filter(u => u.id !== toDelete.id)); setToDelete(null); }, className: "flex-1 p-2 rounded bg-red-500 text-white" }, "Delete")
-                        ])
-                    ])
-                )
-            ]);
+            return (
+                <div className="min-h-screen bg-school-900 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+                    {/* Decorative background elements */}
+                    <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none" 
+                         style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '32px 32px' }}></div>
+                    
+                    <div className="text-center mb-8 z-10">
+                        <div className="bg-gold-500 text-school-900 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl border-4 border-school-800 transform rotate-3">
+                            <Icons.Shield />
+                        </div>
+                        <h1 className="text-4xl font-serif font-bold text-white mb-2 tracking-wide">EduJournal</h1>
+                        <p className="text-school-100 text-lg opacity-80">Academic Information System</p>
+                    </div>
+
+                    <Card className="w-full max-w-md p-8 z-10 border-t-8 border-gold-500 shadow-2xl">
+                        <h2 className="text-xl font-bold text-slate-800 mb-6 text-center font-serif">Sign In</h2>
+                        {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm mb-6 text-center shadow-sm">{error}</div>}
+                        <form onSubmit={handleLogin} className="space-y-5">
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">Username</label>
+                                <input type="text" className="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-school-600 focus:border-school-600 outline-none transition-all"
+                                    value={username} onChange={e => setUsername(e.target.value)} required />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">Password</label>
+                                <input type="password" className="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-school-600 focus:border-school-600 outline-none transition-all"
+                                    value={password} onChange={e => setPassword(e.target.value)} required />
+                            </div>
+                            <Button type="submit" variant="primary" className="w-full py-3.5 text-lg mt-4 shadow-lg">Access Portal</Button>
+                        </form>
+                    </Card>
+                    
+                    <div className="mt-8 text-center text-sm text-school-100 opacity-60 z-10">
+                        <p>Demo Admin Login: <strong>Admin</strong> / <strong>nz5laf6nzzA</strong></p>
+                    </div>
+                </div>
+            );
         }
 
-        function CreateUserModal({ users, onSubmit, onClose }) {
-            const [name, setName] = useState('');
-            const [role, setRole] = useState('student');
-            const [user, setUser] = useState('');
-            const [pass, setPass] = useState('');
-            const [selectedSubs, setSelectedSubs] = useState([]);
-            const [selectedStuds, setSelectedStuds] = useState([]);
+        // ==========================================
+        // ADMIN DASHBOARD
+        // ==========================================
+        function AdminDashboard({ users, setUsers }) {
+            const [showModal, setShowModal] = useState(false);
+            const [userToDelete, setUserToDelete] = useState(null);
 
+            const handleCreateUser = (newUser) => {
+                setUsers([...users, { ...newUser, id: Date.now().toString() }]);
+                setShowModal(false);
+            };
+
+            return (
+                <div className="space-y-8 animate-fade-in">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-school-700">
+                        <div>
+                            <h2 className="text-3xl font-serif font-bold text-school-900">Directory Management</h2>
+                            <p className="text-slate-500 mt-1">Add or remove faculty and student accounts.</p>
+                        </div>
+                        <Button variant="gold" onClick={() => setShowModal(true)}><Icons.Plus /> Register New User</Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {['admin', 'teacher', 'student'].map(role => (
+                            <div key={role} className="space-y-4">
+                                <div className="flex items-center gap-3 border-b-2 border-slate-200 pb-3">
+                                    <div className="bg-school-100 text-school-800 p-2 rounded-lg">
+                                        {role === 'admin' ? <Icons.Shield /> : role === 'teacher' ? <Icons.Book /> : <Icons.Users />}
+                                    </div>
+                                    <h3 className="font-serif font-bold text-xl capitalize text-school-900">{role}s</h3>
+                                    <span className="ml-auto bg-slate-100 text-slate-600 py-1 px-3 rounded-full text-xs font-bold">
+                                        {users.filter(u => u.role === role).length}
+                                    </span>
+                                </div>
+                                
+                                {users.filter(u => u.role === role).map(user => (
+                                    <Card key={user.id} className="p-5 flex flex-col gap-3 hover:border-school-400 transition-colors group">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <div className="font-bold text-lg text-slate-800">{user.name}</div>
+                                                <div className="text-sm text-school-600 font-medium">@{user.username}</div>
+                                            </div>
+                                            {user.id !== 'admin-1' && (
+                                                <button onClick={() => setUserToDelete(user)} className="text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 p-2 rounded-lg transition-colors" title="Remove User">
+                                                    <Icons.Trash />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="text-xs font-mono bg-slate-50 p-2 rounded border border-slate-100 text-slate-500 flex justify-between">
+                                            <span>Password:</span> <span>{user.password}</span>
+                                        </div>
+                                        {role === 'teacher' && (
+                                            <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded border border-slate-100 space-y-1">
+                                                <p><strong className="text-slate-700">Subjects:</strong> {user.subjects?.join(', ') || 'None'}</p>
+                                                <p><strong className="text-slate-700">Class Size:</strong> {user.assignedStudents?.length || 0} students</p>
+                                            </div>
+                                        )}
+                                    </Card>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+
+                    {showModal && <CreateUserModal users={users} onClose={() => setShowModal(false)} onSubmit={handleCreateUser} />}
+                    
+                    {userToDelete && (
+                        <div className="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50 animate-fade-in">
+                            <Card className="w-full max-w-md p-8 text-center border-t-8 border-red-600">
+                                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 mb-4 border-4 border-white shadow-sm">
+                                    <span className="text-red-600"><Icons.Trash /></span>
+                                </div>
+                                <h3 className="text-2xl font-serif font-bold mb-2 text-slate-800">Remove Account?</h3>
+                                <p className="text-slate-600 mb-8">
+                                    Are you sure you want to permanently delete <strong>{userToDelete.name}</strong> from the directory?
+                                </p>
+                                <div className="flex gap-4 justify-center">
+                                    <Button variant="secondary" onClick={() => setUserToDelete(null)} className="flex-1">Cancel</Button>
+                                    <Button variant="dangerSolid" onClick={() => { setUsers(users.filter(u => u.id !== userToDelete.id)); setUserToDelete(null); }} className="flex-1">Remove</Button>
+                                </div>
+                            </Card>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // WIDER, BETTER CREATE USER MODAL
+        function CreateUserModal({ users, onClose, onSubmit }) {
+            const [formData, setFormData] = useState({ username: '', password: '', name: '', role: 'student', subjects: [], assignedStudents: [] });
             const students = users.filter(u => u.role === 'student');
 
-            return h('div', { className: "fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50" }, 
-                h('div', { className: "bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in" }, [
-                    h('div', { className: "p-6 border-b sticky top-0 bg-white flex justify-between items-center" }, [
-                        h('h2', { className: "text-xl font-bold" }, "Create New Account"),
-                        h('button', { onClick: onClose, className: "text-slate-400 text-2xl" }, "×")
-                    ]),
-                    h('form', { className: "p-6 space-y-6", onSubmit: (e) => {
-                        e.preventDefault();
-                        onSubmit({ name, role, username: user, password: pass, subjects: selectedSubs, assignedStudents: selectedStuds });
-                    }}, [
-                        h('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" }, [
-                            h('div', null, [ h('label', { className: "block text-sm font-bold mb-1" }, "Full Name"), h('input', { required: true, className: "w-full p-2 border rounded", value: name, onChange: e => setName(e.target.value) }) ]),
-                            h('div', null, [ h('label', { className: "block text-sm font-bold mb-1" }, "Role"), h('select', { className: "w-full p-2 border rounded", value: role, onChange: e => setRole(e.target.value) }, [ h('option', { value: 'student' }, "Student"), h('option', { value: 'teacher' }, "Teacher") ]) ]),
-                            h('div', null, [ h('label', { className: "block text-sm font-bold mb-1" }, "Username"), h('input', { required: true, className: "w-full p-2 border rounded", value: user, onChange: e => setUser(e.target.value) }) ]),
-                            h('div', null, [ h('label', { className: "block text-sm font-bold mb-1" }, "Password"), h('input', { required: true, className: "w-full p-2 border rounded", value: pass, onChange: e => setPass(e.target.value) }) ])
-                        ]),
-                        role === 'teacher' && h('div', { className: "space-y-4 border-t pt-4" }, [
-                            h('div', null, [
-                                h('label', { className: "block text-sm font-bold mb-2" }, "Assign Subjects"),
-                                h('div', { className: "flex flex-wrap gap-2" }, SUBJECTS.map(s => h('button', { 
-                                    key: s, type: 'button', 
-                                    onClick: () => setSelectedSubs(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]),
-                                    className: `px-3 py-1 text-xs rounded-full border ${selectedSubs.includes(s) ? 'bg-blue-600 text-white' : 'bg-slate-50'}` 
-                                }, s)))
-                            ]),
-                            h('div', null, [
-                                h('label', { className: "block text-sm font-bold mb-2" }, "Assign Students"),
-                                h('div', { className: "grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border p-3 rounded bg-slate-50" }, students.map(s => h('label', { key: s.id, className: "text-sm flex items-center gap-2" }, [
-                                    h('input', { type: 'checkbox', onChange: () => setSelectedStuds(prev => prev.includes(s.id) ? prev.filter(x => x !== s.id) : [...prev, s.id]) }),
-                                    s.name
-                                ])))
-                            ])
-                        ]),
-                        h('div', { className: "flex justify-end gap-3 pt-4" }, [
-                            h('button', { type: 'button', onClick: onClose, className: "px-6 py-2 rounded bg-slate-100" }, "Cancel"),
-                            h('button', { type: 'submit', className: "px-6 py-2 rounded bg-blue-600 text-white font-bold" }, "Save Account")
-                        ])
-                    ])
-                ])
+            const toggleSub = (sub) => setFormData(p => ({ ...p, subjects: p.subjects.includes(sub) ? p.subjects.filter(s => s !== sub) : [...p.subjects, sub] }));
+            const toggleStud = (id) => setFormData(p => ({ ...p, assignedStudents: p.assignedStudents.includes(id) ? p.assignedStudents.filter(s => s !== id) : [...p.assignedStudents, id] }));
+
+            return (
+                <div className="fixed inset-0 modal-overlay flex items-center justify-center p-4 sm:p-6 z-50 animate-fade-in">
+                    <Card className="w-full max-w-3xl max-h-[90vh] flex flex-col bg-slate-50 border-t-8 border-school-700">
+                        {/* Modal Header */}
+                        <div className="px-8 py-5 border-b border-slate-200 bg-white flex justify-between items-center shrink-0">
+                            <div>
+                                <h2 className="text-2xl font-serif font-bold text-school-900">Register New User</h2>
+                                <p className="text-sm text-slate-500">Fill out the details to add to the directory.</p>
+                            </div>
+                            <button onClick={onClose} className="text-slate-400 hover:text-red-600 text-3xl font-light transition-colors">&times;</button>
+                        </div>
+
+                        {/* Modal Body (Scrollable) */}
+                        <div className="p-8 overflow-y-auto flex-1">
+                            <form id="createUserForm" onSubmit={(e) => { e.preventDefault(); onSubmit(formData); }} className="space-y-8">
+                                
+                                {/* Basic Info Grid */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                                        <h3 className="font-bold text-school-800 border-b pb-2">Personal Details</h3>
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-1">Full Legal Name</label>
+                                            <input type="text" required className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-school-500 outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-1">Account Role</label>
+                                            <select className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-school-500 outline-none bg-white font-medium" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
+                                                <option value="student">Student Account</option>
+                                                <option value="teacher">Faculty / Teacher</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                                        <h3 className="font-bold text-school-800 border-b pb-2">Login Credentials</h3>
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-1">Username</label>
+                                            <input type="text" required className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-school-500 outline-none" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-1">Temporary Password</label>
+                                            <input type="text" required className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-school-500 outline-none font-mono text-sm" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Teacher Assignments */}
+                                {formData.role === 'teacher' && (
+                                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-6 animate-fade-in">
+                                        <h3 className="font-bold text-school-800 border-b pb-2">Faculty Assignments</h3>
+                                        
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-3">Taught Subjects</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {SUBJECTS.map(sub => (
+                                                    <button key={sub} type="button" onClick={() => toggleSub(sub)}
+                                                        className={`px-4 py-2 rounded-lg font-medium border-2 transition-all ${formData.subjects.includes(sub) ? 'bg-school-700 text-white border-school-700' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-school-400'}`}>
+                                                        {sub}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-3">Enrolled Roster ({students.length} available)</label>
+                                            {students.length === 0 ? (
+                                                <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-200">No students are registered in the directory yet.</p>
+                                            ) : (
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-48 overflow-y-auto p-4 border rounded-xl bg-slate-50">
+                                                    {students.map(s => (
+                                                        <label key={s.id} className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer border-2 transition-colors ${formData.assignedStudents.includes(s.id) ? 'bg-school-50 border-school-400' : 'bg-white border-slate-200 hover:border-slate-300'}`}>
+                                                            <input type="checkbox" checked={formData.assignedStudents.includes(s.id)} onChange={() => toggleStud(s.id)} className="w-5 h-5 text-school-600 rounded focus:ring-school-500" />
+                                                            <span className="font-medium text-slate-700">{s.name}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </form>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="px-8 py-4 border-t border-slate-200 bg-white flex justify-end gap-4 shrink-0">
+                            <Button variant="secondary" onClick={onClose}>Cancel</Button>
+                            <Button type="submit" form="createUserForm" variant="primary">Register Account</Button>
+                        </div>
+                    </Card>
+                </div>
             );
         }
 
+        // ==========================================
+        // TEACHER DASHBOARD
+        // ==========================================
         function TeacherDashboard({ user, users, records, setRecords }) {
             const [subject, setSubject] = useState(null);
+            const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
             const [scoreModal, setScoreModal] = useState(null);
-            const date = new Date().toISOString().split('T')[0];
+            const [commentModal, setCommentModal] = useState(null);
+
             const studs = users.filter(u => (user.assignedStudents || []).includes(u.id));
 
-            const update = (sid, data) => {
+            const updateRec = (sid, updates) => {
                 setRecords(prev => {
-                    const idx = prev.findIndex(r => r.sid === sid && r.sub === subject && r.date === date);
+                    const idx = prev.findIndex(r => r.studentId === sid && r.subject === subject && r.date === date);
                     if (idx >= 0) {
-                        const next = [...prev]; next[idx] = { ...next[idx], ...data };
-                        return next;
+                        const newArr = [...prev]; newArr[idx] = { ...newArr[idx], ...updates }; return newArr;
                     }
-                    return [...prev, { id: Math.random(), sid, sub: subject, date, attendance: true, score: null, ...data }];
+                    return [...prev, { id: Math.random(), studentId: sid, subject, date, attendance: true, score: null, comments: [], ...updates }];
                 });
             };
 
-            const get = (sid) => records.find(r => r.sid === sid && r.sub === subject && r.date === date) || { attendance: true, score: null };
+            const getRec = (sid) => records.find(r => r.studentId === sid && r.subject === subject && r.date === date) || { attendance: true, score: null, comments: [] };
 
             if (!subject) {
-                return h('div', { className: "grid grid-cols-2 sm:grid-cols-4 gap-4" }, (user.subjects || []).map(s => h('button', {
-                    key: s, onClick: () => setSubject(s),
-                    className: "bg-white p-8 rounded-2xl border hover:border-blue-500 shadow-sm font-bold text-lg transition-all"
-                }, s)));
+                return (
+                    <div className="animate-fade-in space-y-8">
+                        <div className="bg-white p-8 rounded-xl shadow-sm border-t-4 border-gold-500">
+                            <h2 className="text-3xl font-serif font-bold text-school-900">Class Select</h2>
+                            <p className="text-slate-500 mt-2">Select a subject to begin taking attendance and assigning grades.</p>
+                        </div>
+                        
+                        {(user.subjects || []).length === 0 ? (
+                            <div className="text-center p-12 bg-white rounded-xl border border-dashed border-slate-300">
+                                <p className="text-slate-500">You haven't been assigned any subjects yet.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+                                {(user.subjects || []).map(sub => (
+                                    <button key={sub} onClick={() => setSubject(sub)}
+                                        className="bg-white p-8 rounded-xl shadow-sm border-2 border-transparent hover:border-school-500 hover:shadow-lg transition-all text-center group flex flex-col items-center gap-4">
+                                        <div className="bg-school-50 text-school-700 p-4 rounded-full group-hover:bg-school-700 group-hover:text-gold-500 transition-colors">
+                                            <Icons.Book />
+                                        </div>
+                                        <span className="font-serif font-bold text-xl text-slate-800">{sub}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                );
             }
 
-            return h('div', { className: "space-y-6" }, [
-                h('button', { onClick: () => setSubject(null), className: "text-blue-600 font-bold" }, "← Back to Classes"),
-                h('div', { className: "bg-white rounded-2xl border shadow-sm overflow-hidden" }, [
-                    h('table', { className: "w-full text-left" }, [
-                        h('thead', { className: "bg-slate-50 border-b" }, h('tr', [
-                            h('th', { className: "p-4" }, "Student"),
-                            h('th', { className: "p-4 text-center" }, "Presence"),
-                            h('th', { className: "p-4 text-center" }, "Score")
-                        ])),
-                        h('tbody', null, studs.map(s => {
-                            const r = get(s.id);
-                            return h('tr', { key: s.id, className: "border-b" }, [
-                                h('td', { className: "p-4 font-medium" }, s.name),
-                                h('td', { className: "p-4 text-center" }, h('button', { 
-                                    onClick: () => update(s.id, { attendance: !r.attendance }),
-                                    className: `px-3 py-1 rounded-full text-xs font-bold ${r.attendance ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`
-                                }, r.attendance ? "Present" : "Absent")),
-                                h('td', { className: "p-4 text-center" }, r.attendance ? (
-                                    r.score !== null ? 
-                                    h('button', { onClick: () => update(s.id, { score: null }), className: "font-black text-xl text-blue-600 hover:text-red-500" }, r.score) :
-                                    h('button', { onClick: () => setScoreModal({ sid: s.id, name: s.name }), className: "text-slate-300 hover:text-blue-600" }, h(Icon, { name: 'plus' }))
-                                ) : h('span', { className: "text-slate-200" }, "-"))
-                            ]);
-                        }))
-                    ])
-                ]),
-                scoreModal && h('div', { className: "fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50" }, 
-                    h('div', { className: "bg-white p-6 rounded-2xl w-full max-w-sm animate-in" }, [
-                        h('h3', { className: "font-bold text-center mb-6" }, `Grade for ${scoreModal.name}`),
-                        h('div', { className: "grid grid-cols-4 gap-2" }, [0,1,2,3,4,5,6,7,8,9,10].map(val => h('button', {
-                            key: val, onClick: () => { update(scoreModal.sid, { score: val }); setScoreModal(null); },
-                            className: "p-3 bg-slate-100 rounded-lg font-bold hover:bg-blue-600 hover:text-white"
-                        }, val))),
-                        h('button', { onClick: () => setScoreModal(null), className: "w-full mt-6 p-2 text-slate-400" }, "Cancel")
-                    ])
-                )
-            ]);
+            return (
+                <div className="animate-fade-in space-y-6">
+                    {/* Controls Header */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                        <div className="flex items-center gap-4">
+                            <Button variant="secondary" onClick={() => setSubject(null)} className="!p-2.5 rounded-full"><Icons.Left /></Button>
+                            <div>
+                                <h2 className="text-2xl font-serif font-bold text-school-900 flex items-center gap-2">{subject} Roster</h2>
+                                <p className="text-sm text-school-600 font-medium">{studs.length} Enrolled Students</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 bg-school-50 px-4 py-2 rounded-lg border border-school-200 text-school-800">
+                            <Icons.Calendar />
+                            <input type="date" value={date} onChange={e => setDate(e.target.value)} 
+                                className="bg-transparent outline-none font-bold cursor-pointer" />
+                        </div>
+                    </div>
+
+                    {/* Main Roster Table */}
+                    <Card className="overflow-x-auto border-t-4 border-school-700">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 tracking-wider font-bold">
+                                    <th className="p-5">Student Name</th>
+                                    <th className="p-5 text-center">Attendance</th>
+                                    <th className="p-5 text-center">Daily Score</th>
+                                    <th className="p-5 text-right">Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 bg-white">
+                                {studs.length === 0 ? (
+                                    <tr><td colSpan="4" className="p-12 text-center text-slate-500 italic">No students in this class.</td></tr>
+                                ) : (
+                                    studs.map(student => {
+                                        const rec = getRec(student.id);
+                                        return (
+                                            <tr key={student.id} className={`transition-colors ${!rec.attendance ? 'bg-slate-50/70' : 'hover:bg-slate-50'}`}>
+                                                
+                                                {/* Name */}
+                                                <td className="p-5">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-full bg-school-100 text-school-800 flex items-center justify-center font-serif font-bold text-lg border border-school-200 shadow-sm">
+                                                            {student.name.charAt(0)}
+                                                        </div>
+                                                        <span className={`font-semibold text-lg ${!rec.attendance ? 'text-slate-400 line-through' : 'text-slate-800'}`}>{student.name}</span>
+                                                    </div>
+                                                </td>
+                                                
+                                                {/* THE SWITCH (Restored) */}
+                                                <td className="p-5 text-center">
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <button onClick={() => updateRec(student.id, { attendance: !rec.attendance })}
+                                                            className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none shadow-inner ${rec.attendance ? 'bg-school-600' : 'bg-slate-300'}`}>
+                                                            <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-300 shadow-md ${rec.attendance ? 'translate-x-8' : 'translate-x-1'}`} />
+                                                        </button>
+                                                        <span className={`text-xs font-bold uppercase tracking-wider ${rec.attendance ? 'text-school-600' : 'text-slate-400'}`}>
+                                                            {rec.attendance ? 'Present' : 'Absent'}
+                                                        </span>
+                                                    </div>
+                                                </td>
+
+                                                {/* HOVER SCORE (Restored) */}
+                                                <td className="p-5 text-center">
+                                                    {!rec.attendance ? (
+                                                        <span className="text-slate-300 text-sm font-medium italic bg-slate-100 px-3 py-1 rounded-full border border-slate-200">Excused</span>
+                                                    ) : rec.score === null ? (
+                                                        <button onClick={() => setScoreModal({ id: student.id, name: student.name })} 
+                                                            className="text-school-700 bg-school-50 border border-school-200 hover:bg-school-600 hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm mx-auto flex items-center gap-1 active:scale-95">
+                                                            <Icons.Plus /> Score
+                                                        </button>
+                                                    ) : (
+                                                        <button onClick={() => updateRec(student.id, { score: null })} 
+                                                            className="group relative px-6 py-2 rounded-lg font-black text-xl transition-all duration-200 bg-gold-500 text-white hover:bg-red-600 shadow-md mx-auto w-24 overflow-hidden" title="Click to remove">
+                                                            <span className="block group-hover:hidden">{rec.score}</span>
+                                                            <span className="hidden group-hover:block w-full">&times;</span>
+                                                        </button>
+                                                    )}
+                                                </td>
+
+                                                {/* COMMENTS */}
+                                                <td className="p-5 text-right">
+                                                    <Button variant={rec.comments.length > 0 ? "primary" : "secondary"} 
+                                                        onClick={() => setCommentModal({ id: student.id, name: student.name })} 
+                                                        className="ml-auto !py-2 !px-4 text-sm font-bold shadow-sm">
+                                                        <Icons.Message /> {rec.comments.length > 0 ? `${rec.comments.length} Notes` : 'Add Note'}
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </Card>
+
+                    {/* MODALS */}
+                    {scoreModal && (
+                        <div className="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50 animate-fade-in">
+                            <Card className="w-full max-w-sm p-8 text-center border-t-8 border-gold-500 shadow-2xl">
+                                <h3 className="text-2xl font-serif font-bold text-slate-800 mb-2">Assign Grade</h3>
+                                <p className="text-sm text-slate-500 mb-8 pb-4 border-b">Evaluating <strong className="text-school-800">{scoreModal.name}</strong></p>
+                                
+                                <div className="grid grid-cols-4 gap-3 mb-8">
+                                    {[0,1,2,3,4,5,6,7,8,9,10].map(s => (
+                                        <button key={s} onClick={() => { updateRec(scoreModal.id, { score: s }); setScoreModal(null); }} 
+                                            className="h-14 rounded-xl font-bold text-xl transition-all border-2 border-slate-200 bg-slate-50 text-slate-700 hover:border-gold-500 hover:bg-gold-500 hover:text-white shadow-sm hover:shadow-md hover:-translate-y-1 active:scale-95">
+                                            {s}
+                                        </button>
+                                    ))}
+                                </div>
+                                <Button variant="secondary" onClick={() => setScoreModal(null)} className="w-full">Cancel</Button>
+                            </Card>
+                        </div>
+                    )}
+
+                    {commentModal && (
+                        <div className="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50 animate-fade-in">
+                            <Card className="w-full max-w-lg p-0 border-t-8 border-school-700 shadow-2xl overflow-hidden flex flex-col">
+                                <div className="p-6 bg-slate-50 border-b">
+                                    <h3 className="text-xl font-serif font-bold text-school-900">Official Remark</h3>
+                                    <p className="text-sm text-slate-500">Adding note for {commentModal.name}</p>
+                                </div>
+                                <form className="p-6 space-y-5 bg-white" onSubmit={(e) => {
+                                    e.preventDefault();
+                                    const t = e.target.elements.title.value.trim();
+                                    const b = e.target.elements.body.value.trim();
+                                    if(t && b) {
+                                        const c = getRec(commentModal.id).comments;
+                                        updateRec(commentModal.id, { comments: [...c, { title: t, body: b }] });
+                                        setCommentModal(null);
+                                    }
+                                }}>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Subject / Title</label>
+                                        <input name="title" type="text" required autoFocus className="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-school-500 outline-none font-medium" placeholder="e.g., Outstanding Participation" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Message Body <span className="font-normal text-slate-400 text-xs ml-2">(Shift+Enter for new line)</span></label>
+                                        <textarea name="body" required rows="5" className="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-school-500 outline-none resize-none" placeholder="Write detailed feedback here..." />
+                                    </div>
+                                    <div className="flex justify-end gap-3 pt-4 border-t mt-6">
+                                        <Button variant="secondary" type="button" onClick={() => setCommentModal(null)}>Cancel</Button>
+                                        <Button type="submit" variant="primary">Save Remark</Button>
+                                    </div>
+                                </form>
+                            </Card>
+                        </div>
+                    )}
+                </div>
+            );
         }
 
+        // ==========================================
+        // STUDENT DASHBOARD
+        // ==========================================
         function StudentDashboard({ user, records }) {
-            return h('div', { className: "space-y-6" }, [
-                h('h2', { className: "text-2xl font-bold" }, "My Performance"),
-                h('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4" }, SUBJECTS.map(s => {
-                    const my = records.filter(r => r.sid === user.id && r.sub === s);
-                    return h('div', { key: s, className: "bg-white p-6 rounded-2xl border shadow-sm" }, [
-                        h('h3', { className: "font-bold text-lg mb-4 border-b pb-2" }, s),
-                        my.length === 0 ? h('p', { className: "text-slate-300 italic" }, "No data available") : 
-                        h('div', { className: "space-y-2" }, my.map(r => h('div', { key: r.id, className: "flex justify-between text-sm" }, [
-                            h('span', null, r.date),
-                            h('span', { className: "font-bold" }, r.attendance ? (r.score ?? "No grade") : "Absent")
-                        ])))
-                    ]);
-                }))
-            ]);
+            const [subject, setSubject] = useState(null);
+
+            if (!subject) {
+                return (
+                    <div className="animate-fade-in space-y-8">
+                        <div className="bg-white p-8 rounded-xl shadow-sm border-t-4 border-school-700">
+                            <h2 className="text-3xl font-serif font-bold text-school-900">Academic Overview</h2>
+                            <p className="text-slate-500 mt-2">Select a subject to review your grades, attendance, and teacher feedback.</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {SUBJECTS.map(sub => {
+                                const recs = records.filter(r => r.studentId === user.id && r.subject === sub);
+                                const scored = recs.filter(r => r.score !== null);
+                                const avg = scored.length > 0 ? (scored.reduce((a,b)=>a+b.score,0)/scored.length).toFixed(1) : null;
+
+                                return (
+                                    <button key={sub} onClick={() => setSubject(sub)}
+                                        className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:border-gold-500 hover:shadow-md transition-all text-left flex flex-col justify-between min-h-[160px] group relative overflow-hidden">
+                                        
+                                        <div className="absolute -right-4 -top-4 text-school-50 opacity-50 group-hover:opacity-100 transition-opacity transform group-hover:scale-110">
+                                            <svg width="100" height="100" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3z"/></svg>
+                                        </div>
+
+                                        <div className="relative z-10">
+                                            <div className="text-gold-500 mb-3 bg-school-900 w-10 h-10 flex items-center justify-center rounded-lg"><Icons.Book /></div>
+                                            <h3 className="font-serif font-bold text-xl text-slate-800">{sub}</h3>
+                                        </div>
+                                        
+                                        <div className="relative z-10 mt-4 flex items-center gap-2">
+                                            {avg ? <span className="bg-gold-500 text-white font-bold px-3 py-1 rounded shadow-sm text-sm">Avg: {avg}</span> 
+                                                 : <span className="text-xs text-slate-400 font-medium">No grades yet</span>}
+                                        </div>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </div>
+                );
+            }
+
+            const history = records.filter(r => r.studentId === user.id && r.subject === subject).sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            return (
+                <div className="animate-fade-in space-y-6 max-w-4xl mx-auto">
+                    <div className="flex items-center gap-4 bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-l-4 border-gold-500">
+                        <Button variant="secondary" onClick={() => setSubject(null)} className="!p-3 rounded-full"><Icons.Left /></Button>
+                        <div>
+                            <h2 className="text-2xl font-serif font-bold text-school-900">{subject} Record</h2>
+                            <p className="text-sm text-school-600 font-medium">Chronological history</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6 relative">
+                        {/* Timeline line */}
+                        <div className="absolute left-8 top-4 bottom-4 w-0.5 bg-slate-200 hidden md:block"></div>
+
+                        {history.length === 0 ? (
+                            <div className="text-center p-12 bg-white rounded-xl border border-dashed border-slate-300">
+                                <p className="text-slate-500 text-lg">No academic records found for this subject.</p>
+                            </div>
+                        ) : (
+                            history.map(rec => (
+                                <Card key={rec.id} className={`p-0 overflow-hidden flex flex-col md:flex-row relative z-10 border-l-8 ${rec.attendance ? 'border-l-school-600' : 'border-l-slate-300'}`}>
+                                    
+                                    {/* Date & Status Ribbon */}
+                                    <div className="md:w-56 p-6 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start bg-slate-50 border-r border-slate-100">
+                                        <div className="flex items-center gap-2 text-school-900 font-bold font-serif text-lg">
+                                            <Icons.Calendar />
+                                            {new Date(rec.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                        </div>
+                                        <div className={`mt-0 md:mt-3 px-4 py-1.5 rounded text-xs font-bold tracking-widest uppercase shadow-inner ${rec.attendance ? 'bg-school-100 text-school-800 border border-school-200' : 'bg-slate-200 text-slate-600 border border-slate-300'}`}>
+                                            {rec.attendance ? 'Present' : 'Absent'}
+                                        </div>
+                                    </div>
+
+                                    {/* Content Area */}
+                                    <div className="p-6 flex-1 flex flex-col sm:flex-row gap-8 items-start bg-white">
+                                        
+                                        {/* Score Badge */}
+                                        {rec.attendance && (
+                                            <div className="flex flex-col items-center justify-center p-5 rounded-2xl bg-slate-50 border border-slate-200 min-w-[120px] shadow-sm">
+                                                <span className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-2">Grade</span>
+                                                {rec.score !== null ? (
+                                                    <div className="text-5xl font-black text-school-900 font-serif">
+                                                        {rec.score}<span className="text-xl text-slate-400 font-sans font-medium">/10</span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-400 italic font-medium">Pending</span>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Notes Section */}
+                                        {rec.comments.length > 0 && (
+                                            <div className="flex-1 space-y-4 w-full">
+                                                {rec.comments.map((c, i) => (
+                                                    <div key={i} className="bg-[#fdfbf7] border border-gold-500/30 rounded-xl p-5 relative shadow-sm">
+                                                        <div className="absolute top-4 right-4 text-gold-500"><Icons.Message /></div>
+                                                        <h4 className="font-serif font-bold text-school-900 text-lg mb-2 pr-8">{c.title}</h4>
+                                                        <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">{c.body}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Empty States */}
+                                        {rec.attendance && rec.comments.length === 0 && rec.score === null && (
+                                            <div className="flex-1 text-slate-400 italic flex items-center h-full pt-8 font-medium">
+                                                No evaluation or remarks recorded for this session.
+                                            </div>
+                                        )}
+
+                                        {!rec.attendance && (
+                                            <div className="flex-1 text-slate-500 italic pt-2 md:pt-8 font-medium">
+                                                Absence recorded. No grade issued.
+                                            </div>
+                                        )}
+                                    </div>
+                                </Card>
+                            ))
+                        )}
+                    </div>
+                </div>
+            );
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(h(App));
+        root.render(<App />);
     </script>
 </body>
 </html>
