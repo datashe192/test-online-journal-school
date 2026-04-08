@@ -6,61 +6,48 @@
     <title>EduJournal - Online School Journal</title>
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React and Babel to run JSX in the browser -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Standard React (No Babel for better speed) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <style>
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* Custom styles for smoother transitions */
+        .modal-overlay {
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
         }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .animate-in {
+            animation: fadeIn 0.2s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        /* Fix for mobile scrolling */
+        body { overflow-x: hidden; }
     </style>
 </head>
-<body class="bg-slate-50">
+<body class="bg-slate-50 text-slate-900">
     <div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
+    <script>
+        const { useState, useEffect, createElement: h } = React;
 
-        // --- UI Components & Icons ---
-        const Card = ({ children, className = '' }) => (
-            <div className={`bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden ${className}`}>
-                {children}
-            </div>
-        );
-
-        const Button = ({ children, onClick, type = 'button', variant = 'primary', className = '' }) => {
-            const baseStyle = "px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2";
-            const variants = {
-                primary: "bg-blue-600 hover:bg-blue-700 text-white shadow-sm",
-                secondary: "bg-slate-100 hover:bg-slate-200 text-slate-700",
-                danger: "bg-red-50 hover:bg-red-100 text-red-600",
-                dangerSolid: "bg-red-500 hover:bg-red-600 text-white shadow-sm",
-                ghost: "hover:bg-slate-100 text-slate-600"
-            };
-            return (
-                <button type={type} onClick={onClick} className={`${baseStyle} ${variants[variant]} ${className}`}>
-                    {children}
-                </button>
-            );
-        };
-
-        const Icons = {
-            Users: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-            Book: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>,
-            LogOut: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
-            Message: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
-            Plus: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-            Left: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>,
-            Calendar: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
-            User: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-            Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-        };
-
+        // --- Configuration ---
         const SUBJECTS = ['English', 'Math', 'Georgian', 'Nature', 'History', 'Sport', 'Music', 'Art'];
         const INITIAL_ADMIN = { id: 'admin-1', username: 'Admin', password: 'nz5laf6nzzA', role: 'admin', name: 'System Administrator' };
+
+        // --- Icons (SVG strings) ---
+        const Icon = ({ name }) => {
+            const icons = {
+                book: h('svg', {width:20, height:20, viewBox:"0 0 24 24", fill:"none", stroke:"currentColor", strokeWidth:2, strokeLinecap:"round", strokeLinejoin:"round"}, h('path', {d:"M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"})),
+                plus: h('svg', {width:20, height:20, viewBox:"0 0 24 24", fill:"none", stroke:"currentColor", strokeWidth:2}, h('line',{x1:12,y1:5,x2:12,y2:19}), h('line',{x1:5,y1:12,x2:19,y2:12})),
+                trash: h('svg', {width:18, height:18, viewBox:"0 0 24 24", fill:"none", stroke:"currentColor", strokeWidth:2}, h('path',{d:"M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"})),
+                logout: h('svg', {width:18, height:18, viewBox:"0 0 24 24", fill:"none", stroke:"currentColor", strokeWidth:2}, h('path',{d:"M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"}))
+            };
+            return icons[name] || null;
+        };
+
+        // --- Components ---
 
         function App() {
             const [currentUser, setCurrentUser] = useState(null);
@@ -68,270 +55,239 @@
             const [records, setRecords] = useState([]);
 
             if (!currentUser) {
-                return <LoginScreen users={users} onLogin={setCurrentUser} />;
+                return h(LoginScreen, { users, onLogin: setCurrentUser });
             }
 
-            return (
-                <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
-                    <header className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-40 shadow-sm">
-                        <div className="max-w-6xl mx-auto flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="bg-blue-600 text-white p-2 rounded-lg"><Icons.Book /></div>
-                                <h1 className="text-xl font-bold tracking-tight">EduJournal</h1>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <div className="flex flex-col items-end hidden sm:flex">
-                                    <span className="text-sm font-semibold">{currentUser.name}</span>
-                                    <span className="text-xs text-slate-500 uppercase tracking-wider">{currentUser.role}</span>
-                                </div>
-                                <Button variant="ghost" onClick={() => setCurrentUser(null)} className="!px-3 text-slate-500 hover:text-red-600">
-                                    <Icons.LogOut /> <span className="hidden sm:inline">Logout</span>
-                                </Button>
-                            </div>
-                        </div>
-                    </header>
-
-                    <main className="max-w-6xl mx-auto p-4 sm:p-6 pb-24">
-                        {currentUser.role === 'admin' && <AdminDashboard users={users} setUsers={setUsers} />}
-                        {currentUser.role === 'teacher' && <TeacherDashboard user={currentUser} users={users} records={records} setRecords={setRecords} />}
-                        {currentUser.role === 'student' && <StudentDashboard user={currentUser} records={records} />}
-                    </main>
-                </div>
-            );
+            return h('div', { className: "min-h-screen flex flex-col" }, [
+                h('header', { className: "bg-white border-b p-4 sticky top-0 z-40 flex justify-between items-center shadow-sm" }, [
+                    h('div', { className: "flex items-center gap-2" }, [
+                        h('div', { className: "bg-blue-600 p-1.5 rounded text-white" }, h(Icon, { name: 'book' })),
+                        h('span', { className: "text-xl font-bold" }, "EduJournal")
+                    ]),
+                    h('div', { className: "flex items-center gap-4" }, [
+                        h('span', { className: "text-sm font-medium hidden sm:inline" }, `${currentUser.name} (${currentUser.role})`),
+                        h('button', { 
+                            onClick: () => setCurrentUser(null),
+                            className: "text-slate-500 hover:text-red-600 p-2 flex items-center gap-2"
+                        }, [h(Icon, { name: 'logout' }), h('span', {className:"hidden sm:inline"}, "Logout")])
+                    ])
+                ]),
+                h('main', { className: "flex-1 max-w-7xl mx-auto w-full p-4 sm:p-8" }, [
+                    currentUser.role === 'admin' && h(AdminDashboard, { users, setUsers }),
+                    currentUser.role === 'teacher' && h(TeacherDashboard, { user: currentUser, users, records, setRecords }),
+                    currentUser.role === 'student' && h(StudentDashboard, { user: currentUser, records })
+                ])
+            ]);
         }
 
-        // --- ALL COMPONENTS CONSOLIDATED FOR HTML RUNTIME ---
-
         function LoginScreen({ users, onLogin }) {
-            const [username, setUsername] = useState('');
-            const [password, setPassword] = useState('');
-            const [error, setError] = useState('');
+            const [u, setU] = useState('');
+            const [p, setP] = useState('');
+            const [err, setErr] = useState('');
 
-            const handleLogin = (e) => {
+            const login = (e) => {
                 e.preventDefault();
-                const user = users.find(u => u.username === username && u.password === password);
-                if (user) onLogin(user);
-                else setError('Invalid username or password');
+                const found = users.find(user => user.username === u && user.password === p);
+                if (found) onLogin(found);
+                else setErr('Wrong credentials');
             };
 
-            return (
-                <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-                    <Card className="w-full max-w-md p-8">
-                        <div className="text-center mb-8">
-                            <div className="bg-blue-600 text-white w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                                <Icons.Book />
-                            </div>
-                            <h1 className="text-2xl font-bold text-slate-800">Welcome Back</h1>
-                            <p className="text-slate-500 mt-2">Sign in to your school account</p>
-                        </div>
-                        {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 text-center">{error}</div>}
-                        <form onSubmit={handleLogin} className="space-y-5">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
-                                <input type="text" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={username} onChange={e => setUsername(e.target.value)} required />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-                                <input type="password" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={password} onChange={e => setPassword(e.target.value)} required />
-                            </div>
-                            <Button type="submit" className="w-full py-3 text-lg mt-2">Sign In</Button>
-                        </form>
-                    </Card>
-                </div>
+            return h('div', { className: "min-h-screen bg-slate-100 flex items-center justify-center p-4" }, 
+                h('div', { className: "bg-white p-8 rounded-2xl shadow-xl w-full max-w-md" }, [
+                    h('h1', { className: "text-2xl font-bold text-center mb-6" }, "School Login"),
+                    err && h('p', { className: "bg-red-50 text-red-600 p-2 rounded mb-4 text-center text-sm" }, err),
+                    h('form', { onSubmit: login, className: "space-y-4" }, [
+                        h('input', { placeholder: "Username", className: "w-full p-3 border rounded-lg", value: u, onChange: e => setU(e.target.value) }),
+                        h('input', { type: "password", placeholder: "Password", className: "w-full p-3 border rounded-lg", value: p, onChange: e => setP(e.target.value) }),
+                        h('button', { className: "w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700" }, "Sign In")
+                    ]),
+                    h('div', { className: "mt-6 p-3 bg-slate-50 rounded text-xs text-center" }, "Admin: Admin / nz5laf6nzzA")
+                ])
             );
         }
 
         function AdminDashboard({ users, setUsers }) {
-            const [showModal, setShowModal] = useState(false);
-            const [userToDelete, setUserToDelete] = useState(null);
-            const handleCreateUser = (newUser) => { setUsers([...users, { ...newUser, id: Date.now().toString() }]); setShowModal(false); };
-            const confirmDelete = () => { if (userToDelete) { setUsers(users.filter(u => u.id !== userToDelete.id)); setUserToDelete(null); } };
+            const [showCreate, setShowCreate] = useState(false);
+            const [toDelete, setToDelete] = useState(null);
 
-            return (
-                <div className="space-y-6 animate-fade-in">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h2 className="text-2xl font-bold">User Management</h2>
-                            <p className="text-slate-500">Create and manage accounts.</p>
-                        </div>
-                        <Button onClick={() => setShowModal(true)}><Icons.Plus /> Create User</Button>
-                    </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {['admin', 'teacher', 'student'].map(role => (
-                            <div key={role} className="space-y-4">
-                                <h3 className="font-semibold text-lg capitalize border-b pb-2">{role}s</h3>
-                                {users.filter(u => u.role === role).map(user => (
-                                    <Card key={user.id} className="p-4 flex justify-between items-start">
-                                        <div>
-                                            <div className="font-semibold">{user.name}</div>
-                                            <div className="text-sm text-slate-500">@{user.username}</div>
-                                        </div>
-                                        {user.id !== 'admin-1' && (
-                                            <button onClick={() => setUserToDelete(user)} className="text-slate-400 hover:text-red-600 p-1"><Icons.Trash /></button>
-                                        )}
-                                    </Card>
-                                ))}
-                            </div>
-                        ))}
-                    </div>
-                    {showModal && <CreateUserModal users={users} onClose={() => setShowModal(false)} onSubmit={handleCreateUser} />}
-                    {userToDelete && (
-                        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
-                            <Card className="w-full max-w-sm p-6 text-center">
-                                <h3 className="text-lg font-bold mb-2">Delete Account?</h3>
-                                <p className="text-slate-500 text-sm mb-6">Confirm delete for {userToDelete.name}</p>
-                                <div className="flex gap-3 justify-center">
-                                    <Button variant="ghost" onClick={() => setUserToDelete(null)}>Cancel</Button>
-                                    <Button variant="dangerSolid" onClick={confirmDelete}>Delete</Button>
-                                </div>
-                            </Card>
-                        </div>
-                    )}
-                </div>
-            );
+            const addUser = (data) => {
+                setUsers([...users, { ...data, id: Date.now().toString() }]);
+                setShowCreate(false);
+            };
+
+            return h('div', { className: "space-y-6" }, [
+                h('div', { className: "flex justify-between items-center" }, [
+                    h('h2', { className: "text-2xl font-bold" }, "User Accounts"),
+                    h('button', { 
+                        onClick: () => setShowCreate(true),
+                        className: "bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                    }, [h(Icon, { name: 'plus' }), "Create User"])
+                ]),
+                h('div', { className: "grid grid-cols-1 md:grid-cols-3 gap-6" }, 
+                    ['admin', 'teacher', 'student'].map(role => h('div', { key: role, className: "space-y-4" }, [
+                        h('h3', { className: "font-bold text-slate-500 uppercase text-xs tracking-widest border-b pb-2" }, role + 's'),
+                        users.filter(u => u.role === role).map(user => h('div', { key: user.id, className: "bg-white p-4 rounded-xl border shadow-sm flex justify-between items-center" }, [
+                            h('div', null, [
+                                h('div', { className: "font-bold" }, user.name),
+                                h('div', { className: "text-xs text-slate-400" }, `@${user.username}`)
+                            ]),
+                            user.id !== 'admin-1' && h('button', { 
+                                onClick: () => setToDelete(user),
+                                className: "text-slate-300 hover:text-red-500" 
+                            }, h(Icon, { name: 'trash' }))
+                        ]))
+                    ]))
+                ),
+                showCreate && h(CreateUserModal, { users, onSubmit: addUser, onClose: () => setShowCreate(false) }),
+                toDelete && h('div', { className: "fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50" }, 
+                    h('div', { className: "bg-white p-6 rounded-2xl max-w-sm w-full animate-in" }, [
+                        h('h3', { className: "text-lg font-bold mb-2" }, "Delete account?"),
+                        h('p', { className: "text-slate-500 mb-6" }, `Are you sure about deleting ${toDelete.name}?`),
+                        h('div', { className: "flex gap-2" }, [
+                            h('button', { onClick: () => setToDelete(null), className: "flex-1 p-2 rounded bg-slate-100" }, "Cancel"),
+                            h('button', { onClick: () => { setUsers(users.filter(u => u.id !== toDelete.id)); setToDelete(null); }, className: "flex-1 p-2 rounded bg-red-500 text-white" }, "Delete")
+                        ])
+                    ])
+                )
+            ]);
         }
 
-        function CreateUserModal({ users, onClose, onSubmit }) {
-            const [formData, setFormData] = useState({ username: '', password: '', name: '', role: 'student', subjects: [], assignedStudents: [] });
-            const students = users.filter(u => u.role === 'student');
-            const toggleSubject = (sub) => setFormData(p => ({ ...p, subjects: p.subjects.includes(sub) ? p.subjects.filter(s => s !== sub) : [...p.subjects, sub] }));
-            const toggleStudent = (id) => setFormData(p => ({ ...p, assignedStudents: p.assignedStudents.includes(id) ? p.assignedStudents.filter(s => s !== id) : [...p.assignedStudents, id] }));
+        function CreateUserModal({ users, onSubmit, onClose }) {
+            const [name, setName] = useState('');
+            const [role, setRole] = useState('student');
+            const [user, setUser] = useState('');
+            const [pass, setPass] = useState('');
+            const [selectedSubs, setSelectedSubs] = useState([]);
+            const [selectedStuds, setSelectedStuds] = useState([]);
 
-            return (
-                <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-                    <Card className="w-full max-w-lg p-6 my-8">
-                        <h2 className="text-xl font-bold mb-4">New Account</h2>
-                        <form onSubmit={(e) => { e.preventDefault(); onSubmit(formData); }} className="space-y-4">
-                            <input placeholder="Full Name" required className="w-full p-2 border rounded" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-                            <select className="w-full p-2 border rounded" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
-                                <option value="student">Student</option>
-                                <option value="teacher">Teacher</option>
-                            </select>
-                            <input placeholder="Username" required className="w-full p-2 border rounded" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} />
-                            <input placeholder="Password" required className="w-full p-2 border rounded" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
-                            
-                            {formData.role === 'teacher' && (
-                                <div className="space-y-4 border-t pt-4">
-                                    <label className="text-sm font-bold">Subjects</label>
-                                    <div className="flex flex-wrap gap-1">
-                                        {SUBJECTS.map(s => <button key={s} type="button" onClick={() => toggleSubject(s)} className={`px-2 py-1 text-xs rounded border ${formData.subjects.includes(s) ? 'bg-blue-600 text-white' : 'bg-slate-50'}`}>{s}</button>)}
-                                    </div>
-                                    <label className="text-sm font-bold">Assign Students</label>
-                                    <div className="grid grid-cols-2 gap-1 max-h-32 overflow-y-auto border p-2">
-                                        {students.map(s => <label key={s.id} className="text-xs flex items-center gap-1"><input type="checkbox" onChange={() => toggleStudent(s.id)} /> {s.name}</label>)}
-                                    </div>
-                                </div>
-                            )}
-                            <div className="flex justify-end gap-2 pt-4">
-                                <Button variant="ghost" onClick={onClose}>Cancel</Button>
-                                <Button type="submit">Create</Button>
-                            </div>
-                        </form>
-                    </Card>
-                </div>
+            const students = users.filter(u => u.role === 'student');
+
+            return h('div', { className: "fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50" }, 
+                h('div', { className: "bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in" }, [
+                    h('div', { className: "p-6 border-b sticky top-0 bg-white flex justify-between items-center" }, [
+                        h('h2', { className: "text-xl font-bold" }, "Create New Account"),
+                        h('button', { onClick: onClose, className: "text-slate-400 text-2xl" }, "×")
+                    ]),
+                    h('form', { className: "p-6 space-y-6", onSubmit: (e) => {
+                        e.preventDefault();
+                        onSubmit({ name, role, username: user, password: pass, subjects: selectedSubs, assignedStudents: selectedStuds });
+                    }}, [
+                        h('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" }, [
+                            h('div', null, [ h('label', { className: "block text-sm font-bold mb-1" }, "Full Name"), h('input', { required: true, className: "w-full p-2 border rounded", value: name, onChange: e => setName(e.target.value) }) ]),
+                            h('div', null, [ h('label', { className: "block text-sm font-bold mb-1" }, "Role"), h('select', { className: "w-full p-2 border rounded", value: role, onChange: e => setRole(e.target.value) }, [ h('option', { value: 'student' }, "Student"), h('option', { value: 'teacher' }, "Teacher") ]) ]),
+                            h('div', null, [ h('label', { className: "block text-sm font-bold mb-1" }, "Username"), h('input', { required: true, className: "w-full p-2 border rounded", value: user, onChange: e => setUser(e.target.value) }) ]),
+                            h('div', null, [ h('label', { className: "block text-sm font-bold mb-1" }, "Password"), h('input', { required: true, className: "w-full p-2 border rounded", value: pass, onChange: e => setPass(e.target.value) }) ])
+                        ]),
+                        role === 'teacher' && h('div', { className: "space-y-4 border-t pt-4" }, [
+                            h('div', null, [
+                                h('label', { className: "block text-sm font-bold mb-2" }, "Assign Subjects"),
+                                h('div', { className: "flex flex-wrap gap-2" }, SUBJECTS.map(s => h('button', { 
+                                    key: s, type: 'button', 
+                                    onClick: () => setSelectedSubs(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]),
+                                    className: `px-3 py-1 text-xs rounded-full border ${selectedSubs.includes(s) ? 'bg-blue-600 text-white' : 'bg-slate-50'}` 
+                                }, s)))
+                            ]),
+                            h('div', null, [
+                                h('label', { className: "block text-sm font-bold mb-2" }, "Assign Students"),
+                                h('div', { className: "grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border p-3 rounded bg-slate-50" }, students.map(s => h('label', { key: s.id, className: "text-sm flex items-center gap-2" }, [
+                                    h('input', { type: 'checkbox', onChange: () => setSelectedStuds(prev => prev.includes(s.id) ? prev.filter(x => x !== s.id) : [...prev, s.id]) }),
+                                    s.name
+                                ])))
+                            ])
+                        ]),
+                        h('div', { className: "flex justify-end gap-3 pt-4" }, [
+                            h('button', { type: 'button', onClick: onClose, className: "px-6 py-2 rounded bg-slate-100" }, "Cancel"),
+                            h('button', { type: 'submit', className: "px-6 py-2 rounded bg-blue-600 text-white font-bold" }, "Save Account")
+                        ])
+                    ])
+                ])
             );
         }
 
         function TeacherDashboard({ user, users, records, setRecords }) {
-            const [selectedSubject, setSelectedSubject] = useState(null);
-            const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
+            const [subject, setSubject] = useState(null);
             const [scoreModal, setScoreModal] = useState(null);
-            const assignedStudents = users.filter(u => (user.assignedStudents || []).includes(u.id));
+            const date = new Date().toISOString().split('T')[0];
+            const studs = users.filter(u => (user.assignedStudents || []).includes(u.id));
 
-            const updateRecord = (studentId, updates) => {
+            const update = (sid, data) => {
                 setRecords(prev => {
-                    const idx = prev.findIndex(r => r.studentId === studentId && r.subject === selectedSubject && r.date === currentDate);
+                    const idx = prev.findIndex(r => r.sid === sid && r.sub === subject && r.date === date);
                     if (idx >= 0) {
-                        const newArr = [...prev];
-                        newArr[idx] = { ...newArr[idx], ...updates };
-                        return newArr;
+                        const next = [...prev]; next[idx] = { ...next[idx], ...data };
+                        return next;
                     }
-                    return [...prev, { id: Math.random(), studentId, subject: selectedSubject, date: currentDate, attendance: true, score: null, comments: [], ...updates }];
+                    return [...prev, { id: Math.random(), sid, sub: subject, date, attendance: true, score: null, ...data }];
                 });
             };
 
-            const getRecord = (id) => records.find(r => r.studentId === id && r.subject === selectedSubject && r.date === currentDate) || { attendance: true, score: null, comments: [] };
+            const get = (sid) => records.find(r => r.sid === sid && r.sub === subject && r.date === date) || { attendance: true, score: null };
 
-            if (!selectedSubject) {
-                return (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        {(user.subjects || []).map(sub => (
-                            <button key={sub} onClick={() => setSelectedSubject(sub)} className="bg-white p-6 rounded-xl border hover:border-blue-500 text-center font-bold">{sub}</button>
-                        ))}
-                    </div>
-                );
+            if (!subject) {
+                return h('div', { className: "grid grid-cols-2 sm:grid-cols-4 gap-4" }, (user.subjects || []).map(s => h('button', {
+                    key: s, onClick: () => setSubject(s),
+                    className: "bg-white p-8 rounded-2xl border hover:border-blue-500 shadow-sm font-bold text-lg transition-all"
+                }, s)));
             }
 
-            return (
-                <div className="space-y-6">
-                    <Button variant="ghost" onClick={() => setSelectedSubject(null)}><Icons.Left /> Back</Button>
-                    <Card className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-slate-50 text-xs uppercase border-b">
-                                <tr><th className="p-4">Student</th><th className="p-4 text-center">Att.</th><th className="p-4 text-center">Score</th></tr>
-                            </thead>
-                            <tbody>
-                                {assignedStudents.map(student => {
-                                    const rec = getRecord(student.id);
-                                    return (
-                                        <tr key={student.id} className="border-b">
-                                            <td className="p-4 font-medium">{student.name}</td>
-                                            <td className="p-4 text-center">
-                                                <input type="checkbox" checked={rec.attendance} onChange={() => updateRecord(student.id, { attendance: !rec.attendance })} />
-                                            </td>
-                                            <td className="p-4 text-center">
-                                                {rec.score === null ? (
-                                                    <Button variant="secondary" onClick={() => setScoreModal({ studentId: student.id, name: student.name })}>+ Score</Button>
-                                                ) : (
-                                                    <span onClick={() => updateRecord(student.id, { score: null })} className="cursor-pointer font-bold text-blue-600 hover:text-red-600">{rec.score}</span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </Card>
-                    {scoreModal && (
-                        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
-                            <Card className="w-full max-w-sm p-6 text-center">
-                                <h3 className="font-bold mb-4">Score for {scoreModal.name}</h3>
-                                <div className="grid grid-cols-4 gap-2">
-                                    {[0,1,2,3,4,5,6,7,8,9,10].map(s => <button key={s} onClick={() => { updateRecord(scoreModal.studentId, { score: s }); setScoreModal(null); }} className="p-3 bg-slate-100 rounded hover:bg-blue-600 hover:text-white font-bold">{s}</button>)}
-                                </div>
-                                <Button variant="ghost" onClick={() => setScoreModal(null)} className="mt-4">Close</Button>
-                            </Card>
-                        </div>
-                    )}
-                </div>
-            );
+            return h('div', { className: "space-y-6" }, [
+                h('button', { onClick: () => setSubject(null), className: "text-blue-600 font-bold" }, "← Back to Classes"),
+                h('div', { className: "bg-white rounded-2xl border shadow-sm overflow-hidden" }, [
+                    h('table', { className: "w-full text-left" }, [
+                        h('thead', { className: "bg-slate-50 border-b" }, h('tr', [
+                            h('th', { className: "p-4" }, "Student"),
+                            h('th', { className: "p-4 text-center" }, "Presence"),
+                            h('th', { className: "p-4 text-center" }, "Score")
+                        ])),
+                        h('tbody', null, studs.map(s => {
+                            const r = get(s.id);
+                            return h('tr', { key: s.id, className: "border-b" }, [
+                                h('td', { className: "p-4 font-medium" }, s.name),
+                                h('td', { className: "p-4 text-center" }, h('button', { 
+                                    onClick: () => update(s.id, { attendance: !r.attendance }),
+                                    className: `px-3 py-1 rounded-full text-xs font-bold ${r.attendance ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`
+                                }, r.attendance ? "Present" : "Absent")),
+                                h('td', { className: "p-4 text-center" }, r.attendance ? (
+                                    r.score !== null ? 
+                                    h('button', { onClick: () => update(s.id, { score: null }), className: "font-black text-xl text-blue-600 hover:text-red-500" }, r.score) :
+                                    h('button', { onClick: () => setScoreModal({ sid: s.id, name: s.name }), className: "text-slate-300 hover:text-blue-600" }, h(Icon, { name: 'plus' }))
+                                ) : h('span', { className: "text-slate-200" }, "-"))
+                            ]);
+                        }))
+                    ])
+                ]),
+                scoreModal && h('div', { className: "fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50" }, 
+                    h('div', { className: "bg-white p-6 rounded-2xl w-full max-w-sm animate-in" }, [
+                        h('h3', { className: "font-bold text-center mb-6" }, `Grade for ${scoreModal.name}`),
+                        h('div', { className: "grid grid-cols-4 gap-2" }, [0,1,2,3,4,5,6,7,8,9,10].map(val => h('button', {
+                            key: val, onClick: () => { update(scoreModal.sid, { score: val }); setScoreModal(null); },
+                            className: "p-3 bg-slate-100 rounded-lg font-bold hover:bg-blue-600 hover:text-white"
+                        }, val))),
+                        h('button', { onClick: () => setScoreModal(null), className: "w-full mt-6 p-2 text-slate-400" }, "Cancel")
+                    ])
+                )
+            ]);
         }
 
         function StudentDashboard({ user, records }) {
-            return (
-                <div className="space-y-6">
-                    <h2 className="text-xl font-bold">Your Grades</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {SUBJECTS.map(sub => {
-                            const myRecs = records.filter(r => r.studentId === user.id && r.subject === sub);
-                            return (
-                                <Card key={sub} className="p-4">
-                                    <h3 className="font-bold border-b pb-2 mb-2">{sub}</h3>
-                                    {myRecs.length === 0 ? <p className="text-xs text-slate-400 italic">No records yet.</p> : 
-                                        myRecs.map(r => <div key={r.id} className="text-sm flex justify-between py-1"><span>{r.date}</span><span className="font-bold">{r.score || 'No score'}</span></div>)
-                                    }
-                                </Card>
-                            )
-                        })}
-                    </div>
-                </div>
-            );
+            return h('div', { className: "space-y-6" }, [
+                h('h2', { className: "text-2xl font-bold" }, "My Performance"),
+                h('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4" }, SUBJECTS.map(s => {
+                    const my = records.filter(r => r.sid === user.id && r.sub === s);
+                    return h('div', { key: s, className: "bg-white p-6 rounded-2xl border shadow-sm" }, [
+                        h('h3', { className: "font-bold text-lg mb-4 border-b pb-2" }, s),
+                        my.length === 0 ? h('p', { className: "text-slate-300 italic" }, "No data available") : 
+                        h('div', { className: "space-y-2" }, my.map(r => h('div', { key: r.id, className: "flex justify-between text-sm" }, [
+                            h('span', null, r.date),
+                            h('span', { className: "font-bold" }, r.attendance ? (r.score ?? "No grade") : "Absent")
+                        ])))
+                    ]);
+                }))
+            ]);
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(h(App));
     </script>
 </body>
 </html>
