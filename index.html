@@ -1,699 +1,337 @@
-import React, { useState } from 'react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduJournal - Online School Journal</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React and Babel to run JSX in the browser -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-slate-50">
+    <div id="root"></div>
 
-// --- UI Components & Icons ---
-const Card = ({ children, className = '' }) => (
-  <div className={`bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden ${className}`}>
-    {children}
-  </div>
-);
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-const Button = ({ children, onClick, type = 'button', variant = 'primary', className = '' }) => {
-  const baseStyle = "px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2";
-  const variants = {
-    primary: "bg-blue-600 hover:bg-blue-700 text-white shadow-sm",
-    secondary: "bg-slate-100 hover:bg-slate-200 text-slate-700",
-    danger: "bg-red-50 hover:bg-red-100 text-red-600",
-    dangerSolid: "bg-red-500 hover:bg-red-600 text-white shadow-sm",
-    ghost: "hover:bg-slate-100 text-slate-600"
-  };
-  return (
-    <button type={type} onClick={onClick} className={`${baseStyle} ${variants[variant]} ${className}`}>
-      {children}
-    </button>
-  );
-};
-
-const Icons = {
-  Users: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-  Book: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>,
-  LogOut: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
-  Message: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
-  Plus: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-  Left: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>,
-  Calendar: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
-  User: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-  Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-};
-
-// --- Constants ---
-const SUBJECTS = ['English', 'Math', 'Georgian', 'Nature', 'History', 'Sport', 'Music', 'Art'];
-const INITIAL_ADMIN = { id: 'admin-1', username: 'Admin', password: 'nz5laf6nzzA', role: 'admin', name: 'System Administrator' };
-
-export default function App() {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [users, setUsers] = useState([INITIAL_ADMIN]);
-  const [records, setRecords] = useState([]);
-
-  if (!currentUser) {
-    return <LoginScreen users={users} onLogin={setCurrentUser} />;
-  }
-
-  return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
-      <header className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-40 shadow-sm">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 text-white p-2 rounded-lg"><Icons.Book /></div>
-            <h1 className="text-xl font-bold tracking-tight">EduJournal</h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col items-end hidden sm:flex">
-              <span className="text-sm font-semibold">{currentUser.name}</span>
-              <span className="text-xs text-slate-500 uppercase tracking-wider">{currentUser.role}</span>
+        // --- UI Components & Icons ---
+        const Card = ({ children, className = '' }) => (
+            <div className={`bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden ${className}`}>
+                {children}
             </div>
-            <Button variant="ghost" onClick={() => setCurrentUser(null)} className="!px-3 text-slate-500 hover:text-red-600">
-              <Icons.LogOut /> <span className="hidden sm:inline">Logout</span>
-            </Button>
-          </div>
-        </div>
-      </header>
+        );
 
-      <main className="max-w-6xl mx-auto p-4 sm:p-6 pb-24">
-        {currentUser.role === 'admin' && <AdminDashboard users={users} setUsers={setUsers} />}
-        {currentUser.role === 'teacher' && <TeacherDashboard user={currentUser} users={users} records={records} setRecords={setRecords} />}
-        {currentUser.role === 'student' && <StudentDashboard user={currentUser} records={records} />}
-      </main>
-    </div>
-  );
-}
+        const Button = ({ children, onClick, type = 'button', variant = 'primary', className = '' }) => {
+            const baseStyle = "px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2";
+            const variants = {
+                primary: "bg-blue-600 hover:bg-blue-700 text-white shadow-sm",
+                secondary: "bg-slate-100 hover:bg-slate-200 text-slate-700",
+                danger: "bg-red-50 hover:bg-red-100 text-red-600",
+                dangerSolid: "bg-red-500 hover:bg-red-600 text-white shadow-sm",
+                ghost: "hover:bg-slate-100 text-slate-600"
+            };
+            return (
+                <button type={type} onClick={onClick} className={`${baseStyle} ${variants[variant]} ${className}`}>
+                    {children}
+                </button>
+            );
+        };
 
-// ==========================================
-// 1. LOGIN SCREEN
-// ==========================================
-function LoginScreen({ users, onLogin }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+        const Icons = {
+            Users: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+            Book: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>,
+            LogOut: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+            Message: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+            Plus: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+            Left: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>,
+            Calendar: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+            User: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+            Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+        };
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    const user = users.find(u => u.username === username && u.password === password);
-    if (user) {
-      onLogin(user);
-    } else {
-      setError('Invalid username or password');
-    }
-  };
+        const SUBJECTS = ['English', 'Math', 'Georgian', 'Nature', 'History', 'Sport', 'Music', 'Art'];
+        const INITIAL_ADMIN = { id: 'admin-1', username: 'Admin', password: 'nz5laf6nzzA', role: 'admin', name: 'System Administrator' };
 
-  return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md p-8">
-        <div className="text-center mb-8">
-          <div className="bg-blue-600 text-white w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <Icons.Book />
-          </div>
-          <h1 className="text-2xl font-bold text-slate-800">Welcome Back</h1>
-          <p className="text-slate-500 mt-2">Sign in to your school account</p>
-        </div>
-        
-        {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 text-center">{error}</div>}
-        
-        <form onSubmit={handleLogin} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
-            <input 
-              type="text" 
-              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
-              value={username} onChange={e => setUsername(e.target.value)} required 
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-            <input 
-              type="password" 
-              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
-              value={password} onChange={e => setPassword(e.target.value)} required 
-            />
-          </div>
-          <Button type="submit" className="w-full py-3 text-lg mt-2">Sign In</Button>
-        </form>
-        
-        <div className="mt-8 text-center text-sm text-slate-500 bg-slate-50 p-4 rounded-lg">
-          <p className="font-semibold text-slate-700 mb-1">Testing Credentials</p>
-          <p>Username: <span className="font-mono bg-white px-1 border rounded">Admin</span></p>
-          <p>Password: <span className="font-mono bg-white px-1 border rounded">nz5laf6nzzA</span></p>
-        </div>
-      </Card>
-    </div>
-  );
-}
+        function App() {
+            const [currentUser, setCurrentUser] = useState(null);
+            const [users, setUsers] = useState([INITIAL_ADMIN]);
+            const [records, setRecords] = useState([]);
 
-// ==========================================
-// 2. ADMIN DASHBOARD
-// ==========================================
-function AdminDashboard({ users, setUsers }) {
-  const [showModal, setShowModal] = useState(false);
-  const [userToDelete, setUserToDelete] = useState(null);
-
-  const handleCreateUser = (newUser) => {
-    setUsers([...users, { ...newUser, id: Date.now().toString() }]);
-    setShowModal(false);
-  };
-
-  const confirmDelete = () => {
-    if (userToDelete) {
-      setUsers(users.filter(u => u.id !== userToDelete.id));
-      setUserToDelete(null);
-    }
-  };
-
-  return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">User Management</h2>
-          <p className="text-slate-500">Create and manage teacher and student accounts.</p>
-        </div>
-        <Button onClick={() => setShowModal(true)}><Icons.Plus /> Create User</Button>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {['admin', 'teacher', 'student'].map(role => (
-          <div key={role} className="space-y-4">
-            <h3 className="font-semibold text-lg capitalize border-b pb-2 flex items-center gap-2">
-              {role === 'admin' ? <Icons.User /> : role === 'teacher' ? <Icons.Book /> : <Icons.Users />}
-              {role}s
-            </h3>
-            {users.filter(u => u.role === role).map(user => (
-              <Card key={user.id} className="p-4 flex flex-col gap-2">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="font-semibold">{user.name}</div>
-                    <div className="text-sm text-slate-500">@{user.username}</div>
-                  </div>
-                  {user.id !== 'admin-1' && (
-                    <button 
-                      onClick={() => setUserToDelete(user)} 
-                      className="text-slate-400 hover:text-red-600 p-1 rounded transition-colors"
-                      title="Delete User"
-                    >
-                      <Icons.Trash />
-                    </button>
-                  )}
-                </div>
-                <div className="text-xs font-mono bg-slate-100 p-1 rounded text-slate-600 mt-2 truncate">Pass: {user.password}</div>
-                
-                {role === 'teacher' && (
-                  <div className="mt-2 text-xs text-slate-500 space-y-1">
-                    <p><strong>Subjects:</strong> {user.subjects?.join(', ') || 'None'}</p>
-                    <p><strong>Students:</strong> {user.assignedStudents?.length || 0} assigned</p>
-                  </div>
-                )}
-              </Card>
-            ))}
-          </div>
-        ))}
-      </div>
-
-      {showModal && <CreateUserModal users={users} onClose={() => setShowModal(false)} onSubmit={handleCreateUser} />}
-      
-      {/* Delete Confirmation Modal */}
-      {userToDelete && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <Card className="w-full max-w-sm p-6 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 mb-4">
-              <span className="text-red-600"><Icons.Trash /></span>
-            </div>
-            <h3 className="text-lg font-bold mb-2">Delete Account?</h3>
-            <p className="text-slate-500 text-sm mb-6">
-              Are you sure you want to delete <strong>{userToDelete.name}</strong>? This action cannot be undone.
-            </p>
-            <div className="flex gap-3 justify-center">
-              <Button variant="ghost" onClick={() => setUserToDelete(null)}>Cancel</Button>
-              <Button variant="dangerSolid" onClick={confirmDelete}>Delete User</Button>
-            </div>
-          </Card>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CreateUserModal({ users, onClose, onSubmit }) {
-  const [formData, setFormData] = useState({
-    username: '', password: '', name: '', role: 'student', subjects: [], assignedStudents: []
-  });
-
-  const students = users.filter(u => u.role === 'student');
-
-  const toggleSubject = (sub) => {
-    setFormData(prev => ({
-      ...prev,
-      subjects: prev.subjects.includes(sub) ? prev.subjects.filter(s => s !== sub) : [...prev.subjects, sub]
-    }));
-  };
-
-  const toggleStudent = (id) => {
-    setFormData(prev => ({
-      ...prev,
-      assignedStudents: prev.assignedStudents.includes(id) ? prev.assignedStudents.filter(s => s !== id) : [...prev.assignedStudents, id]
-    }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit(formData);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-      <Card className="w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4">Create New Account</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Full Name</label>
-              <input type="text" required className="w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Role</label>
-              <select className="w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
-                <option value="student">Student</option>
-                <option value="teacher">Teacher</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Username</label>
-              <input type="text" required className="w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Password</label>
-              <input type="text" required className="w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
-            </div>
-          </div>
-
-          {formData.role === 'teacher' && (
-            <div className="mt-6 space-y-4 border-t pt-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Assign Subjects</label>
-                <div className="flex flex-wrap gap-2">
-                  {SUBJECTS.map(sub => (
-                    <button key={sub} type="button" onClick={() => toggleSubject(sub)}
-                      className={`px-3 py-1 text-sm rounded-full border transition-colors ${formData.subjects.includes(sub) ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
-                      {sub}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Assign Students</label>
-                {students.length === 0 ? (
-                  <p className="text-sm text-slate-500 italic">No students exist yet. Create students first.</p>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border rounded-lg bg-slate-50">
-                    {students.map(student => (
-                      <label key={student.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-100 p-1 rounded">
-                        <input type="checkbox" checked={formData.assignedStudents.includes(student.id)} onChange={() => toggleStudent(student.id)} className="rounded text-blue-600 focus:ring-blue-500" />
-                        {student.name}
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-6">
-            <Button variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit">Create Account</Button>
-          </div>
-        </form>
-      </Card>
-    </div>
-  );
-}
-
-// ==========================================
-// 3. TEACHER DASHBOARD
-// ==========================================
-function TeacherDashboard({ user, users, records, setRecords }) {
-  const [selectedSubject, setSelectedSubject] = useState(null);
-  const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
-  const [commentModal, setCommentModal] = useState(null); 
-  const [scoreModal, setScoreModal] = useState(null); // { studentId, studentName, currentScore }
-
-  const teacherSubjects = user.subjects || [];
-  const assignedStudents = users.filter(u => (user.assignedStudents || []).includes(u.id));
-
-  const updateRecord = (studentId, updates) => {
-    setRecords(prev => {
-      const idx = prev.findIndex(r => r.studentId === studentId && r.subject === selectedSubject && r.date === currentDate);
-      if (idx >= 0) {
-        const newArr = [...prev];
-        newArr[idx] = { ...newArr[idx], ...updates };
-        return newArr;
-      }
-      return [...prev, {
-        id: Date.now().toString() + Math.random(),
-        studentId, subject: selectedSubject, date: currentDate,
-        attendance: true, score: null, comments: [],
-        ...updates
-      }];
-    });
-  };
-
-  const getRecord = (studentId) => {
-    return records.find(r => r.studentId === studentId && r.subject === selectedSubject && r.date === currentDate) 
-      || { attendance: true, score: null, comments: [] };
-  };
-
-  if (!selectedSubject) {
-    return (
-      <div className="animate-fade-in space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold">Your Classes</h2>
-          <p className="text-slate-500">Select a subject to manage attendance and grades.</p>
-        </div>
-        {teacherSubjects.length === 0 ? (
-          <div className="text-center p-12 bg-white rounded-xl border border-dashed border-slate-300">
-            <p className="text-slate-500">You haven't been assigned any subjects yet. Please contact the administrator.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {teacherSubjects.map(sub => (
-              <button key={sub} onClick={() => setSelectedSubject(sub)}
-                className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:border-blue-500 hover:shadow-md transition-all text-center flex flex-col items-center gap-3 group">
-                <div className="bg-blue-50 text-blue-600 p-4 rounded-full group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                  <Icons.Book />
-                </div>
-                <span className="font-semibold text-lg">{sub}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className="animate-fade-in space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => setSelectedSubject(null)} className="!p-2"><Icons.Left /></Button>
-          <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">{selectedSubject} Class</h2>
-            <p className="text-sm text-slate-500">{assignedStudents.length} students assigned</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
-          <Icons.Calendar />
-          <input type="date" value={currentDate} onChange={e => setCurrentDate(e.target.value)} 
-            className="bg-transparent outline-none text-sm font-medium text-slate-700 cursor-pointer" />
-        </div>
-      </div>
-
-      <Card className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-sm uppercase text-slate-500 tracking-wider">
-              <th className="p-4 font-medium">Student Name</th>
-              <th className="p-4 font-medium text-center">Attendance</th>
-              <th className="p-4 font-medium text-center">Score (0-10)</th>
-              <th className="p-4 font-medium text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {assignedStudents.length === 0 ? (
-              <tr><td colSpan="4" className="p-8 text-center text-slate-500 italic">No students assigned to you yet.</td></tr>
-            ) : (
-              assignedStudents.map(student => {
-                const record = getRecord(student.id);
-                return (
-                  <tr key={student.id} className={`transition-colors ${!record.attendance ? 'bg-slate-50/50' : 'hover:bg-slate-50'}`}>
-                    <td className="p-4 font-medium flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
-                        {student.name.charAt(0)}
-                      </div>
-                      <span className={!record.attendance ? 'text-slate-400 line-through' : ''}>{student.name}</span>
-                    </td>
-                    
-                    <td className="p-4 text-center">
-                      <button 
-                        onClick={() => updateRecord(student.id, { attendance: !record.attendance })}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${record.attendance ? 'bg-blue-600' : 'bg-slate-300'}`}
-                      >
-                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${record.attendance ? 'translate-x-6' : 'translate-x-1'}`} />
-                      </button>
-                      <div className="text-xs mt-1 font-medium text-slate-500">
-                        {record.attendance ? 'Present' : 'Absent'}
-                      </div>
-                    </td>
-
-                    <td className="p-4 text-center">
-                      {!record.attendance ? (
-                         <span className="text-slate-300 text-sm italic">N/A</span>
-                      ) : record.score === null ? (
-                        <div className="flex justify-center">
-                          <button onClick={() => setScoreModal({ studentId: student.id, studentName: student.name, currentScore: null })} 
-                            className="text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1">
-                            <Icons.Plus /> Add
-                          </button>
-                        </div>
-                      ) : (
-                        <button onClick={() => updateRecord(student.id, { score: null })} 
-                          className="group relative px-4 py-1.5 rounded-lg font-bold text-lg transition-all duration-200 bg-blue-50 text-blue-700 hover:bg-red-500 hover:text-white w-20 overflow-hidden text-center inline-block"
-                          title="Click to delete score">
-                          <span className="block group-hover:hidden">{record.score}<span className="text-sm font-normal text-blue-400">/10</span></span>
-                          <span className="hidden group-hover:block w-full">X</span>
-                        </button>
-                      )}
-                    </td>
-
-                    <td className="p-4 text-right">
-                      <Button variant={record.comments.length > 0 ? "secondary" : "ghost"} 
-                        onClick={() => setCommentModal({ studentId: student.id, studentName: student.name })} 
-                        className="ml-auto !py-1.5 !px-3 text-sm">
-                        <Icons.Message /> {record.comments.length > 0 ? `${record.comments.length} Comments` : 'Comment'}
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </Card>
-
-      {/* Score Modal Component */}
-      {scoreModal && (
-        <ScoreModal 
-          studentName={scoreModal.studentName}
-          currentScore={scoreModal.currentScore}
-          onClose={() => setScoreModal(null)}
-          onSave={(val) => {
-            updateRecord(scoreModal.studentId, { score: val });
-            setScoreModal(null);
-          }}
-        />
-      )}
-
-      {commentModal && (
-        <CommentModal 
-          studentName={commentModal.studentName}
-          onClose={() => setCommentModal(null)}
-          onSave={(title, body) => {
-            const currentRec = getRecord(commentModal.studentId);
-            updateRecord(commentModal.studentId, {
-              comments: [...currentRec.comments, { title, body, date: new Date().toISOString() }]
-            });
-            setCommentModal(null);
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-// Modal for selecting a score to avoid dropdown lag
-function ScoreModal({ studentName, currentScore, onClose, onSave }) {
-  return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-      <Card className="w-full max-w-sm p-6 text-center">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-bold">Assign Score</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><Icons.Left className="rotate-180" /></button>
-        </div>
-        <p className="text-sm text-slate-500 mb-6">Select a grade for <strong>{studentName}</strong></p>
-        
-        <div className="grid grid-cols-4 gap-3 mb-6">
-          {[0,1,2,3,4,5,6,7,8,9,10].map(s => (
-            <button key={s} onClick={() => onSave(s)} 
-              className={`h-12 rounded-xl font-bold text-lg transition-colors border-2 ${currentScore === s ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-100 bg-slate-50 text-slate-700 hover:border-blue-300 hover:bg-blue-50'}`}>
-              {s}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex justify-between pt-4 border-t border-slate-100">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          {currentScore !== null && (
-            <Button variant="danger" onClick={() => onSave(null)}>Remove Score</Button>
-          )}
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-function CommentModal({ studentName, onClose, onSave }) {
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if(title.trim() && body.trim()) onSave(title, body);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-      <Card className="w-full max-w-md p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-bold">Message Parents/Student</h3>
-          <p className="text-sm text-slate-500">For {studentName}</p>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Subject / Title</label>
-            <input type="text" required autoFocus value={title} onChange={e => setTitle(e.target.value)} 
-              className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g., Great participation today!" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Message <span className="text-xs font-normal text-slate-400">(Shift+Enter for new line)</span></label>
-            <textarea required value={body} onChange={e => setBody(e.target.value)} rows="5"
-              className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" 
-              placeholder="Write your comment here..." />
-          </div>
-          <div className="flex justify-end gap-3 pt-4">
-            <Button variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit">Send Comment</Button>
-          </div>
-        </form>
-      </Card>
-    </div>
-  );
-}
-
-// ==========================================
-// 4. STUDENT DASHBOARD
-// ==========================================
-function StudentDashboard({ user, records }) {
-  const [selectedSubject, setSelectedSubject] = useState(null);
-
-  if (!selectedSubject) {
-    return (
-      <div className="animate-fade-in space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold">My Subjects</h2>
-          <p className="text-slate-500">Select a lesson to view your history, grades, and comments.</p>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {SUBJECTS.map(sub => {
-            const subjectRecords = records.filter(r => r.studentId === user.id && r.subject === sub);
-            const totalClasses = subjectRecords.length;
-            const avgScore = totalClasses > 0 ? 
-              (subjectRecords.reduce((acc, curr) => acc + (curr.score || 0), 0) / subjectRecords.filter(r=>r.score!==null).length).toFixed(1) 
-              : null;
+            if (!currentUser) {
+                return <LoginScreen users={users} onLogin={setCurrentUser} />;
+            }
 
             return (
-              <button key={sub} onClick={() => setSelectedSubject(sub)}
-                className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:border-blue-500 hover:shadow-md transition-all text-left group flex flex-col justify-between min-h-[140px]">
-                <div>
-                  <div className="text-blue-600 mb-3"><Icons.Book /></div>
-                  <h3 className="font-bold text-lg">{sub}</h3>
+                <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
+                    <header className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-40 shadow-sm">
+                        <div className="max-w-6xl mx-auto flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-blue-600 text-white p-2 rounded-lg"><Icons.Book /></div>
+                                <h1 className="text-xl font-bold tracking-tight">EduJournal</h1>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="flex flex-col items-end hidden sm:flex">
+                                    <span className="text-sm font-semibold">{currentUser.name}</span>
+                                    <span className="text-xs text-slate-500 uppercase tracking-wider">{currentUser.role}</span>
+                                </div>
+                                <Button variant="ghost" onClick={() => setCurrentUser(null)} className="!px-3 text-slate-500 hover:text-red-600">
+                                    <Icons.LogOut /> <span className="hidden sm:inline">Logout</span>
+                                </Button>
+                            </div>
+                        </div>
+                    </header>
+
+                    <main className="max-w-6xl mx-auto p-4 sm:p-6 pb-24">
+                        {currentUser.role === 'admin' && <AdminDashboard users={users} setUsers={setUsers} />}
+                        {currentUser.role === 'teacher' && <TeacherDashboard user={currentUser} users={users} records={records} setRecords={setRecords} />}
+                        {currentUser.role === 'student' && <StudentDashboard user={currentUser} records={records} />}
+                    </main>
                 </div>
-                {totalClasses > 0 && (
-                  <div className="text-xs text-slate-500 flex gap-2 font-medium mt-4">
-                    {avgScore && avgScore !== "NaN" && <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded">Avg: {avgScore}</span>}
-                    <span className="bg-slate-100 px-2 py-0.5 rounded">{totalClasses} Records</span>
-                  </div>
-                )}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-    );
-  }
+            );
+        }
 
-  const subjectHistory = records
-    .filter(r => r.studentId === user.id && r.subject === selectedSubject)
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
+        // --- ALL COMPONENTS CONSOLIDATED FOR HTML RUNTIME ---
 
-  return (
-    <div className="animate-fade-in space-y-6">
-      <div className="flex items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <Button variant="ghost" onClick={() => setSelectedSubject(null)} className="!p-2"><Icons.Left /></Button>
-        <div>
-          <h2 className="text-xl font-bold">{selectedSubject} History</h2>
-          <p className="text-sm text-slate-500">All your scores and feedback</p>
-        </div>
-      </div>
+        function LoginScreen({ users, onLogin }) {
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
 
-      <div className="space-y-4">
-        {subjectHistory.length === 0 ? (
-          <div className="text-center p-12 bg-white rounded-xl border border-dashed border-slate-300">
-            <p className="text-slate-500">No records found for this subject yet.</p>
-          </div>
-        ) : (
-          subjectHistory.map(record => (
-            <Card key={record.id} className="p-0 overflow-hidden flex flex-col md:flex-row">
-              <div className={`md:w-48 p-4 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start md:border-r border-slate-100 ${record.attendance ? 'bg-blue-50' : 'bg-slate-100'}`}>
-                <div className="flex items-center gap-2 text-slate-700 font-semibold">
-                  <Icons.Calendar />
-                  {new Date(record.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+            const handleLogin = (e) => {
+                e.preventDefault();
+                const user = users.find(u => u.username === username && u.password === password);
+                if (user) onLogin(user);
+                else setError('Invalid username or password');
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+                    <Card className="w-full max-w-md p-8">
+                        <div className="text-center mb-8">
+                            <div className="bg-blue-600 text-white w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                                <Icons.Book />
+                            </div>
+                            <h1 className="text-2xl font-bold text-slate-800">Welcome Back</h1>
+                            <p className="text-slate-500 mt-2">Sign in to your school account</p>
+                        </div>
+                        {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 text-center">{error}</div>}
+                        <form onSubmit={handleLogin} className="space-y-5">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
+                                <input type="text" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    value={username} onChange={e => setUsername(e.target.value)} required />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                                <input type="password" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    value={password} onChange={e => setPassword(e.target.value)} required />
+                            </div>
+                            <Button type="submit" className="w-full py-3 text-lg mt-2">Sign In</Button>
+                        </form>
+                    </Card>
                 </div>
-                <div className={`mt-0 md:mt-2 px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase ${record.attendance ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-500'}`}>
-                  {record.attendance ? 'Present' : 'Absent'}
-                </div>
-              </div>
+            );
+        }
 
-              <div className="p-4 flex-1 flex flex-col sm:flex-row gap-6 items-start">
-                {record.attendance && (
-                  <div className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-xl min-w-[100px]">
-                    <span className="text-xs text-slate-400 font-medium uppercase mb-1">Score</span>
-                    {record.score !== null ? (
-                      <div className="text-3xl font-black text-slate-800">
-                        {record.score}<span className="text-lg text-slate-400 font-medium">/10</span>
-                      </div>
-                    ) : (
-                      <span className="text-slate-400 italic">None</span>
+        function AdminDashboard({ users, setUsers }) {
+            const [showModal, setShowModal] = useState(false);
+            const [userToDelete, setUserToDelete] = useState(null);
+            const handleCreateUser = (newUser) => { setUsers([...users, { ...newUser, id: Date.now().toString() }]); setShowModal(false); };
+            const confirmDelete = () => { if (userToDelete) { setUsers(users.filter(u => u.id !== userToDelete.id)); setUserToDelete(null); } };
+
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h2 className="text-2xl font-bold">User Management</h2>
+                            <p className="text-slate-500">Create and manage accounts.</p>
+                        </div>
+                        <Button onClick={() => setShowModal(true)}><Icons.Plus /> Create User</Button>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {['admin', 'teacher', 'student'].map(role => (
+                            <div key={role} className="space-y-4">
+                                <h3 className="font-semibold text-lg capitalize border-b pb-2">{role}s</h3>
+                                {users.filter(u => u.role === role).map(user => (
+                                    <Card key={user.id} className="p-4 flex justify-between items-start">
+                                        <div>
+                                            <div className="font-semibold">{user.name}</div>
+                                            <div className="text-sm text-slate-500">@{user.username}</div>
+                                        </div>
+                                        {user.id !== 'admin-1' && (
+                                            <button onClick={() => setUserToDelete(user)} className="text-slate-400 hover:text-red-600 p-1"><Icons.Trash /></button>
+                                        )}
+                                    </Card>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+                    {showModal && <CreateUserModal users={users} onClose={() => setShowModal(false)} onSubmit={handleCreateUser} />}
+                    {userToDelete && (
+                        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
+                            <Card className="w-full max-w-sm p-6 text-center">
+                                <h3 className="text-lg font-bold mb-2">Delete Account?</h3>
+                                <p className="text-slate-500 text-sm mb-6">Confirm delete for {userToDelete.name}</p>
+                                <div className="flex gap-3 justify-center">
+                                    <Button variant="ghost" onClick={() => setUserToDelete(null)}>Cancel</Button>
+                                    <Button variant="dangerSolid" onClick={confirmDelete}>Delete</Button>
+                                </div>
+                            </Card>
+                        </div>
                     )}
-                  </div>
-                )}
+                </div>
+            );
+        }
 
-                {record.comments.length > 0 && (
-                  <div className="flex-1 space-y-3 w-full">
-                    {record.comments.map((comment, i) => (
-                      <div key={i} className="bg-amber-50 border border-amber-100 rounded-lg p-3 relative">
-                        <div className="absolute top-3 right-3 text-amber-300"><Icons.Message /></div>
-                        <h4 className="font-bold text-amber-900 mb-1 pr-8">{comment.title}</h4>
-                        <p className="text-amber-800 text-sm whitespace-pre-wrap">{comment.body}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
+        function CreateUserModal({ users, onClose, onSubmit }) {
+            const [formData, setFormData] = useState({ username: '', password: '', name: '', role: 'student', subjects: [], assignedStudents: [] });
+            const students = users.filter(u => u.role === 'student');
+            const toggleSubject = (sub) => setFormData(p => ({ ...p, subjects: p.subjects.includes(sub) ? p.subjects.filter(s => s !== sub) : [...p.subjects, sub] }));
+            const toggleStudent = (id) => setFormData(p => ({ ...p, assignedStudents: p.assignedStudents.includes(id) ? p.assignedStudents.filter(s => s !== id) : [...p.assignedStudents, id] }));
 
-                {record.attendance && record.comments.length === 0 && record.score === null && (
-                  <div className="flex-1 text-slate-400 italic flex items-center h-full pt-6">
-                    No grades or comments for this day.
-                  </div>
-                )}
+            return (
+                <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+                    <Card className="w-full max-w-lg p-6 my-8">
+                        <h2 className="text-xl font-bold mb-4">New Account</h2>
+                        <form onSubmit={(e) => { e.preventDefault(); onSubmit(formData); }} className="space-y-4">
+                            <input placeholder="Full Name" required className="w-full p-2 border rounded" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                            <select className="w-full p-2 border rounded" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
+                                <option value="student">Student</option>
+                                <option value="teacher">Teacher</option>
+                            </select>
+                            <input placeholder="Username" required className="w-full p-2 border rounded" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} />
+                            <input placeholder="Password" required className="w-full p-2 border rounded" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+                            
+                            {formData.role === 'teacher' && (
+                                <div className="space-y-4 border-t pt-4">
+                                    <label className="text-sm font-bold">Subjects</label>
+                                    <div className="flex flex-wrap gap-1">
+                                        {SUBJECTS.map(s => <button key={s} type="button" onClick={() => toggleSubject(s)} className={`px-2 py-1 text-xs rounded border ${formData.subjects.includes(s) ? 'bg-blue-600 text-white' : 'bg-slate-50'}`}>{s}</button>)}
+                                    </div>
+                                    <label className="text-sm font-bold">Assign Students</label>
+                                    <div className="grid grid-cols-2 gap-1 max-h-32 overflow-y-auto border p-2">
+                                        {students.map(s => <label key={s.id} className="text-xs flex items-center gap-1"><input type="checkbox" onChange={() => toggleStudent(s.id)} /> {s.name}</label>)}
+                                    </div>
+                                </div>
+                            )}
+                            <div className="flex justify-end gap-2 pt-4">
+                                <Button variant="ghost" onClick={onClose}>Cancel</Button>
+                                <Button type="submit">Create</Button>
+                            </div>
+                        </form>
+                    </Card>
+                </div>
+            );
+        }
 
-                {!record.attendance && (
-                  <div className="flex-1 text-slate-500 italic pt-2 md:pt-6">
-                    You were marked absent for this lesson.
-                  </div>
-                )}
-              </div>
-            </Card>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
+        function TeacherDashboard({ user, users, records, setRecords }) {
+            const [selectedSubject, setSelectedSubject] = useState(null);
+            const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
+            const [scoreModal, setScoreModal] = useState(null);
+            const assignedStudents = users.filter(u => (user.assignedStudents || []).includes(u.id));
+
+            const updateRecord = (studentId, updates) => {
+                setRecords(prev => {
+                    const idx = prev.findIndex(r => r.studentId === studentId && r.subject === selectedSubject && r.date === currentDate);
+                    if (idx >= 0) {
+                        const newArr = [...prev];
+                        newArr[idx] = { ...newArr[idx], ...updates };
+                        return newArr;
+                    }
+                    return [...prev, { id: Math.random(), studentId, subject: selectedSubject, date: currentDate, attendance: true, score: null, comments: [], ...updates }];
+                });
+            };
+
+            const getRecord = (id) => records.find(r => r.studentId === id && r.subject === selectedSubject && r.date === currentDate) || { attendance: true, score: null, comments: [] };
+
+            if (!selectedSubject) {
+                return (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        {(user.subjects || []).map(sub => (
+                            <button key={sub} onClick={() => setSelectedSubject(sub)} className="bg-white p-6 rounded-xl border hover:border-blue-500 text-center font-bold">{sub}</button>
+                        ))}
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-6">
+                    <Button variant="ghost" onClick={() => setSelectedSubject(null)}><Icons.Left /> Back</Button>
+                    <Card className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead className="bg-slate-50 text-xs uppercase border-b">
+                                <tr><th className="p-4">Student</th><th className="p-4 text-center">Att.</th><th className="p-4 text-center">Score</th></tr>
+                            </thead>
+                            <tbody>
+                                {assignedStudents.map(student => {
+                                    const rec = getRecord(student.id);
+                                    return (
+                                        <tr key={student.id} className="border-b">
+                                            <td className="p-4 font-medium">{student.name}</td>
+                                            <td className="p-4 text-center">
+                                                <input type="checkbox" checked={rec.attendance} onChange={() => updateRecord(student.id, { attendance: !rec.attendance })} />
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                {rec.score === null ? (
+                                                    <Button variant="secondary" onClick={() => setScoreModal({ studentId: student.id, name: student.name })}>+ Score</Button>
+                                                ) : (
+                                                    <span onClick={() => updateRecord(student.id, { score: null })} className="cursor-pointer font-bold text-blue-600 hover:text-red-600">{rec.score}</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </Card>
+                    {scoreModal && (
+                        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
+                            <Card className="w-full max-w-sm p-6 text-center">
+                                <h3 className="font-bold mb-4">Score for {scoreModal.name}</h3>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {[0,1,2,3,4,5,6,7,8,9,10].map(s => <button key={s} onClick={() => { updateRecord(scoreModal.studentId, { score: s }); setScoreModal(null); }} className="p-3 bg-slate-100 rounded hover:bg-blue-600 hover:text-white font-bold">{s}</button>)}
+                                </div>
+                                <Button variant="ghost" onClick={() => setScoreModal(null)} className="mt-4">Close</Button>
+                            </Card>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function StudentDashboard({ user, records }) {
+            return (
+                <div className="space-y-6">
+                    <h2 className="text-xl font-bold">Your Grades</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {SUBJECTS.map(sub => {
+                            const myRecs = records.filter(r => r.studentId === user.id && r.subject === sub);
+                            return (
+                                <Card key={sub} className="p-4">
+                                    <h3 className="font-bold border-b pb-2 mb-2">{sub}</h3>
+                                    {myRecs.length === 0 ? <p className="text-xs text-slate-400 italic">No records yet.</p> : 
+                                        myRecs.map(r => <div key={r.id} className="text-sm flex justify-between py-1"><span>{r.date}</span><span className="font-bold">{r.score || 'No score'}</span></div>)
+                                    }
+                                </Card>
+                            )
+                        })}
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
