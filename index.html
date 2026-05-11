@@ -317,215 +317,102 @@
         // ==========================================
         // LOGIN SCREEN WITH AUTH, SMS & EASTER EGGS
         // ==========================================
-        function LoginScreen({ users, setUsers, onLogin }) {
-            const [step, setStep] = useState('login'); // login, 2fa_choice, otp_app, otp_phone, reg_phone_prompt, reg_phone_verify, reg_app_qr
-            const [username, setUsername] = useState('');
-            const [password, setPassword] = useState('');
-            const [error, setError] = useState('');
-            const [tempPhone, setTempPhone] = useState('');
-            const [generatedCode, setGeneratedCode] = useState('');
-            const [qrImage, setQrImage] = useState(null);
-            const [otpCode, setOtpCode] = useState('');
+        function LoginScreen({ users, onLogin }) {
+    const [step, setStep] = useState('credentials'); // 'credentials', 'phone-entry', 'code-entry'
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [smsCode, setSmsCode] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
-            const triggerSMS = (phoneNum) => {
-                const code = Math.floor(100000 + Math.random() * 900000).toString();
-                setGeneratedCode(code);
-                setTimeout(() => {
-                    alert(`📱 NEW SMS from Edu School:\n\nHere is your code: ${code}, DO NOT SHARE IT WITH ANYONE They can gain access to your account`);
-                }, 1000);
-            };
-
-            const handleLogin = (e) => {
-                e.preventDefault();
-                setError('');
-
-                // Easter Egg 1: Phone Registration
-                if (username === '#phonereg' && password === 'qututuna') {
-                    setStep('reg_phone_prompt');
-                    return;
-                }
-                
-                // Easter Egg 2: App Authenticator Registration
-                if (username === '#otpreg' && password === 'qututuna') {
-                    setStep('reg_app_qr');
-                    fetch('/api/generate-qr')
-                        .then(res => res.json())
-                        .then(data => { if(data.qr) setQrImage(data.qr); else setError("API Error generating QR."); })
-                        .catch(err => setError("Failed to reach Vercel API. Are you running on localhost?"));
-                    return;
-                }
-
-                // Standard Login Flow
-                const user = users.find(u => u.username === username && u.password === password);
-                if (user) {
-                    if (user.role === 'admin') {
-                        setStep('2fa_choice'); // Give choice
-                    } else {
-                        onLogin(user); // Proceed immediately for students/teachers
-                    }
-                } else {
-                    setError('Incorrect credentials.');
-                }
-            };
-
-            const handlePhoneRegVerify = (e) => {
-                e.preventDefault();
-                if (otpCode === generatedCode) {
-                    setUsers(prev => prev.map(u => u.role === 'admin' ? { ...u, phone: tempPhone } : u));
-                    alert("Phone number successfully linked to Admin account!");
-                    setStep('login');
-                    setUsername(''); setPassword(''); setOtpCode(''); setTempPhone('');
-                } else {
-                    setError("Incorrect verification code.");
-                }
-            };
-
-            const startPhoneLogin = () => {
-                const adminUser = users.find(u => u.role === 'admin');
-                if (!adminUser || !adminUser.phone) {
-                    setError("No phone number is registered. Use #phonereg to link one.");
-                    return;
-                }
-                triggerSMS(adminUser.phone);
-                setStep('otp_phone');
-            };
-
-            const verifyLoginPhoneOtp = (e) => {
-                e.preventDefault();
-                if (otpCode === generatedCode) {
-                    onLogin(users.find(u => u.username === 'Admin'));
-                } else {
-                    setError("Invalid Phone SMS Code.");
-                }
-            };
-
-            const verifyLoginAppOtp = async (e) => {
-                e.preventDefault();
-                try {
-                    const res = await fetch('/api/verify-otp', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ token: otpCode })
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                        onLogin(users.find(u => u.username === 'Admin'));
-                    } else {
-                        setError('Invalid Authenticator Code.');
-                    }
-                } catch (err) {
-                    console.log("No backend API. Bypassing 2FA for local mode.");
-                    onLogin(users.find(u => u.username === 'Admin'));
-                }
-            };
-
-            return (
-                <div className="min-h-screen bg-sidebar-bg flex flex-col items-center justify-center p-4 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none" 
-                         style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '32px 32px' }}></div>
-                    
-                    <div className="text-center mb-8 z-10 flex flex-col items-center">
-                        <div className="bg-white/10 p-5 rounded-3xl mb-6 shadow-lg backdrop-blur-sm text-gold-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-16 h-16"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
-                        </div>
-                        <h1 className="text-4xl font-serif font-bold text-white mb-2 tracking-wide">OnlineEdu</h1>
-                        <p className="text-white/70 text-lg">Online Academic System</p>
-                    </div>
-
-                    <Card className="w-full max-w-md p-8 z-10 border-t-8 border-gold-500 shadow-2xl">
-                        {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm mb-6 text-center shadow-sm">{error}</div>}
-                        
-                        {/* STATE 1: STANDARD LOGIN */}
-                        {step === 'login' && (
-                            <form onSubmit={handleLogin} className="space-y-5 animate-fade-in">
-                                <h2 className="text-xl font-bold text-slate-800 mb-6 text-center font-serif">Sign In</h2>
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">Username</label>
-                                    <input type="text" className="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sidebar-bg outline-none transition-all" value={username} onChange={e => setUsername(e.target.value)} required />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">Password</label>
-                                    <input type="password" className="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sidebar-bg outline-none transition-all" value={password} onChange={e => setPassword(e.target.value)} required />
-                                </div>
-                                <Button type="submit" variant="primary" className="w-full py-3.5 text-lg mt-4 shadow-lg">Authorize</Button>
-                            </form>
-                        )}
-
-                        {/* STATE 2: ADMIN 2FA CHOICE */}
-                        {step === '2fa_choice' && (
-                            <div className="space-y-4 animate-fade-in">
-                                <h2 className="text-xl font-bold text-slate-800 mb-6 text-center font-serif">Select Authentication</h2>
-                                <p className="text-sm text-slate-500 text-center mb-4">Choose how you want to verify your identity.</p>
-                                <Button type="button" variant="primary" className="w-full py-3" onClick={() => setStep('otp_app')}><Icons.Shield /> Authenticator App</Button>
-                                <Button type="button" variant="gold" className="w-full py-3" onClick={startPhoneLogin}><Icons.Phone /> Phone Number (SMS)</Button>
-                                <button onClick={() => {setStep('login'); setUsername(''); setPassword('');}} className="w-full text-slate-500 text-sm font-bold mt-2 hover:text-slate-800">Cancel</button>
-                            </div>
-                        )}
-
-                        {/* STATE 3: VERIFY APP OTP */}
-                        {step === 'otp_app' && (
-                            <form onSubmit={verifyLoginAppOtp} className="space-y-5 animate-fade-in">
-                                <h2 className="text-xl font-bold text-slate-800 mb-2 text-center font-serif">App Security Check</h2>
-                                <p className="text-sm text-slate-500 text-center mb-6">Enter the 6-digit code from your Authenticator app.</p>
-                                <input name="otp" className="w-full p-4 bg-slate-50 border border-slate-300 rounded-lg text-center text-3xl tracking-[0.5em] font-bold outline-none focus:ring-2 focus:ring-sidebar-bg" value={otpCode} onChange={e => setOtpCode(e.target.value)} placeholder="000000" maxLength="6" required/>
-                                <Button type="submit" variant="gold" className="w-full py-3.5 text-lg shadow-lg">Verify App Code</Button>
-                                <button type="button" onClick={()=>setStep('2fa_choice')} className="w-full text-slate-500 text-sm font-bold mt-4 hover:text-slate-800">Choose another method</button>
-                            </form>
-                        )}
-
-                        {/* STATE 4: VERIFY PHONE OTP */}
-                        {step === 'otp_phone' && (
-                            <form onSubmit={verifyLoginPhoneOtp} className="space-y-5 animate-fade-in">
-                                <h2 className="text-xl font-bold text-slate-800 mb-2 text-center font-serif">SMS Security Check</h2>
-                                <p className="text-sm text-slate-500 text-center mb-6">Check your phone for the 6-digit code.</p>
-                                <input name="otp" className="w-full p-4 bg-slate-50 border border-slate-300 rounded-lg text-center text-3xl tracking-[0.5em] font-bold outline-none focus:ring-2 focus:ring-sidebar-bg" value={otpCode} onChange={e => setOtpCode(e.target.value)} placeholder="000000" maxLength="6" required/>
-                                <Button type="submit" variant="primary" className="w-full py-3.5 text-lg shadow-lg">Verify SMS Code</Button>
-                                <button type="button" onClick={()=>setStep('2fa_choice')} className="w-full text-slate-500 text-sm font-bold mt-4 hover:text-slate-800">Choose another method</button>
-                            </form>
-                        )}
-
-                        {/* EASTER EGG 1: PROMPT PHONE */}
-                        {step === 'reg_phone_prompt' && (
-                            <form onSubmit={(e) => { e.preventDefault(); triggerSMS(tempPhone); setStep('reg_phone_verify'); }} className="space-y-5 animate-fade-in">
-                                <h2 className="text-xl font-bold text-slate-800 mb-2 text-center font-serif">Register Phone</h2>
-                                <p className="text-sm text-slate-500 text-center mb-6">Link a phone number to the Admin account.</p>
-                                <input type="tel" className="w-full p-4 bg-slate-50 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-sidebar-bg" placeholder="Enter Phone Number" value={tempPhone} onChange={e=>setTempPhone(e.target.value)} required/>
-                                <Button type="submit" variant="primary" className="w-full py-3.5 text-lg shadow-lg">Send Verification SMS</Button>
-                                <button type="button" onClick={()=>{setStep('login'); setUsername(''); setPassword('');}} className="w-full text-slate-500 text-sm font-bold mt-4 hover:text-slate-800">Cancel</button>
-                            </form>
-                        )}
-
-                        {/* EASTER EGG 2: VERIFY PHONE REGISTRATION */}
-                        {step === 'reg_phone_verify' && (
-                            <form onSubmit={handlePhoneRegVerify} className="space-y-5 animate-fade-in">
-                                <h2 className="text-xl font-bold text-slate-800 mb-2 text-center font-serif">Verify Phone</h2>
-                                <p className="text-sm text-slate-500 text-center mb-6">Enter the code sent to your phone.</p>
-                                <input name="otp" className="w-full p-4 bg-slate-50 border border-slate-300 rounded-lg text-center text-3xl tracking-[0.5em] font-bold outline-none focus:ring-2 focus:ring-sidebar-bg" value={otpCode} onChange={e=>setOtpCode(e.target.value)} placeholder="000000" maxLength="6" required/>
-                                <Button type="submit" variant="gold" className="w-full py-3.5 text-lg shadow-lg">Link Phone</Button>
-                            </form>
-                        )}
-
-                        {/* EASTER EGG 3: APP AUTH REGISTRATION */}
-                        {step === 'reg_app_qr' && (
-                            <div className="animate-fade-in text-center flex flex-col items-center">
-                                <h2 className="text-xl font-bold text-slate-800 mb-2 font-serif">QR Generation</h2>
-                                <p className="text-slate-500 text-sm mb-6">Scan this with Google Authenticator or Authy to bind the Admin account.</p>
-                                
-                                {!qrImage ? (
-                                    <div className="flex flex-col items-center justify-center p-12"><Icons.CloudSync /><p className="mt-4 text-sm text-slate-500">Generating QR...</p></div>
-                                ) : (
-                                    <div className="bg-slate-50 p-4 border border-slate-200 rounded-xl mb-4">
-                                        <img src={qrImage} alt="TOTP QR Code" className="w-48 h-48 mx-auto" />
-                                    </div>
-                                )}
-                                <button onClick={() => { setStep('login'); setUsername(''); setPassword(''); setQrImage(null); }} className="text-slate-500 hover:text-sidebar-bg w-full font-bold text-sm mt-4">Done / Return to Login</button>
-                            </div>
-                        )}
-
-                    </Card>
-                </div>
-            );
+    const handleInitialAuth = (e) => {
+        e.preventDefault();
+        const user = users.find(u => u.username === username && u.password === password);
+        if (user) {
+            setStep('phone-entry'); // Move to phone registration step
+            setError('');
+        } else {
+            setError('Incorrect credentials.');
         }
+    };
+
+    const sendSms = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch('http://localhost:3000/start-verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phoneNumber })
+            });
+            const data = await res.json();
+            if (data.success) setStep('code-entry');
+            else setError(data.error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const verifyCode = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch('http://localhost:3000/check-verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phoneNumber, code: smsCode })
+            });
+            const data = await res.json();
+            if (data.success) {
+                const user = users.find(u => u.username === username);
+                onLogin(user); // Finalize login
+            } else {
+                setError('Incorrect code. Access Denied.');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-sidebar-bg flex flex-col items-center justify-center p-4">
+            <Card className="w-full max-w-md p-8 border-t-8 border-gold-500 shadow-2xl">
+                <h2 className="text-xl font-bold text-slate-800 mb-6 text-center font-serif">
+                    {step === 'credentials' ? 'Sign In' : 'Phone Verification'}
+                </h2>
+                
+                {error && <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm mb-6 text-center">{error}</div>}
+
+                {step === 'credentials' && (
+                    <form onSubmit={handleInitialAuth} className="space-y-5">
+                        <input type="text" placeholder="Username" className="w-full p-3 bg-slate-50 border rounded-lg" value={username} onChange={e => setUsername(e.target.value)} required />
+                        <input type="password" placeholder="Password" className="w-full p-3 bg-slate-50 border rounded-lg" value={password} onChange={e => setPassword(e.target.value)} required />
+                        <Button type="submit" variant="primary" className="w-full">Next</Button>
+                    </form>
+                )}
+
+                {step === 'phone-entry' && (
+                    <div className="space-y-5">
+                        <label className="text-sm font-bold text-slate-700">Register Phone (#phonereg)</label>
+                        <input type="text" placeholder="+995..." className="w-full p-3 bg-slate-50 border rounded-lg" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} />
+                        <Button onClick={sendSms} variant="gold" className="w-full" disabled={loading}>
+                            {loading ? 'Sending...' : 'Send SMS Code'}
+                        </Button>
+                    </div>
+                )}
+
+                {step === 'code-entry' && (
+                    <div className="space-y-5">
+                        <label className="text-sm font-bold text-slate-700">Enter Verification Code</label>
+                        <input type="text" placeholder="6-digit code" className="w-full p-3 bg-slate-50 border rounded-lg" value={smsCode} onChange={e => setSmsCode(e.target.value)} />
+                        <Button onClick={verifyCode} variant="primary" className="w-full" disabled={loading}>
+                            {loading ? 'Verifying...' : 'Verify & Enter'}
+                        </Button>
+                    </div>
+                )}
+            </Card>
+        </div>
+    );
+}
 
         // ==========================================
         // HOMEWORK MODULE
